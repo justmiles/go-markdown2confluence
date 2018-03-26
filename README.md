@@ -11,10 +11,10 @@ Push markdown files to Confluence Cloud
 Usage of markdown2confluence:
 
     -debug
-      	enable debug logging
+        enable debug logging
     -file string
-      	markdown file to sync with Confluence
+        markdown file to sync with Confluence
     -space string
-      	space in which page should be created. Defaults to user's personal space
+        space in which page should be created. Defaults to user's personal space
     -title string
-      	title for page to update
+        title for page. Defaults to file name without .md extension

@@ -9,12 +9,13 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strings"
 )
 
 var (
 	spacePtr = flag.String("space", "", "space in which page should be created. Defaults to user's personal space")
-	titlePtr = flag.String("title", "", "title for page to update")
+	titlePtr = flag.String("title", "", "title for page. Defaults to file name without .md extension")
 	filePtr  = flag.String("file", "", "markdown file to sync with Confluence")
 	debugPtr = flag.Bool("debug", false, "enable debug logging")
 	username = os.Getenv("CONFLUENCE_USERNAME")
@@ -32,6 +33,13 @@ func main() {
 	if *spacePtr == "" {
 		*spacePtr = "~" + string(username)
 	}
+
+	if *titlePtr == "" {
+		re := regexp.MustCompile(`.*[^.md]`)
+		*titlePtr = re.FindString(*filePtr)
+		validateInput(*titlePtr, "title not provided")
+	}
+
 	// Content of Wiki
 	dat, err := ioutil.ReadFile(*filePtr)
 	check(err, fmt.Sprintf(`Could not open file "%s"`, *filePtr))
@@ -67,14 +75,15 @@ func main() {
 
 		// if page does not exist, create it
 	} else {
-		bp := confluence.CreateContentBodyParameters{
-			Title: *titlePtr,
-			Type:  "page",
-		}
+		bp := confluence.CreateContentBodyParameters{}
+		bp.Title = *titlePtr
+		bp.Type = "page"
 		bp.Space.Key = *spacePtr
+		bp.Body.Storage.Representation = "storage"
+		bp.Body.Storage.Value = wikiContent
 		content, err := client.CreateContent(&bp, nil)
 		check(err, "")
-		fmt.Println(client.Endpoint + content.Links.Webui)
+		fmt.Println(client.Endpoint + content.Links.Tinyui)
 	}
 }
 
