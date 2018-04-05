@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -36,7 +37,7 @@ func main() {
 
 	if *titlePtr == "" {
 		re := regexp.MustCompile(`.*[^.md]`)
-		*titlePtr = re.FindString(*filePtr)
+		*titlePtr = re.FindString(filepath.Base(*filePtr))
 		validateInput(*titlePtr, "title not provided")
 	}
 
