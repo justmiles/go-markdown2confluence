@@ -3,7 +3,7 @@ Push markdown files to Confluence Cloud
 
 ## Installation
 
-    sudo curl -L https://github.com/justmiles/go-markdown2confluence/releases/download/v1.0.0/markdown2confluence.linux-amd64 -o /usr/local/bin/markdown2confluence
+    sudo curl -L https://github.com/justmiles/go-markdown2confluence/releases/download/v1.1.0/markdown2confluence.linux-amd64 -o /usr/local/bin/markdown2confluence
     sudo chmod +x /usr/local/bin/markdown2confluence
 
 ## Usage
