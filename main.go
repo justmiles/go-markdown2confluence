@@ -1,18 +1,15 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
-	"github.com/a8m/mark"
-	"github.com/justmiles/go-confluence"
-	"html"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
+
+	"github.com/justmiles/go-confluence"
+	"github.com/justmiles/mark"
 )
 
 var (
@@ -48,6 +45,11 @@ func main() {
 	wikiContent := string(dat)
 	wikiContent = renderContent(wikiContent)
 
+	if *debugPtr {
+		fmt.Println("---- RENDERED CONTENT START ---------------------------------")
+		fmt.Println(wikiContent)
+		fmt.Println("---- RENDERED CONTENT END -----------------------------------")
+	}
 	// Create the Confluence client
 	client := new(confluence.Client)
 	client.Username = username
@@ -106,47 +108,6 @@ func check(e error, s string) {
 }
 
 func renderContent(s string) string {
-	m := mark.New(s, &mark.Options{
-		Gfm:         false,
-		Smartypants: true,
-	})
-	m.AddRenderFn(mark.NodeCode, func(node mark.Node) (s string) {
-		p, _ := node.(*mark.CodeNode)
-		lineCount, _ := lineCounter(p.Text)
-		s += `<ac:structured-macro ac:name="code" ac:schema-version="1" ac:macro-id="8f7842af-1a72-4902-89a1-2d4ed6d6c70d">`
-		s += `<ac:parameter ac:name="theme">DJango</ac:parameter>`
-		if lineCount > 5 {
-			s += `<ac:parameter ac:name="linenumbers">true</ac:parameter>`
-		}
-		if lineCount > 30 {
-			s += `<ac:parameter ac:name="collapse">true</ac:parameter>`
-		}
-		if p.Lang != "" {
-			s += fmt.Sprintf(`<ac:parameter ac:name="language">%s</ac:parameter>`, p.Lang)
-		}
-		s += fmt.Sprintf(`<ac:plain-text-body><![CDATA[%s]]></ac:plain-text-body>`, html.UnescapeString(p.Text))
-		s += `</ac:structured-macro>`
-		return s
-	})
+	m := mark.New(s, nil)
 	return m.Render()
-}
-
-func lineCounter(s string) (int, error) {
-	r := strings.NewReader(s)
-	buf := make([]byte, 32*1024)
-	count := 0
-	lineSep := []byte{'\n'}
-
-	for {
-		c, err := r.Read(buf)
-		count += bytes.Count(buf[:c], lineSep)
-
-		switch {
-		case err == io.EOF:
-			return count, nil
-
-		case err != nil:
-			return count, err
-		}
-	}
 }
