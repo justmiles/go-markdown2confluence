@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/a8m/mark"
 	"github.com/justmiles/go-confluence"
+	"html"
 	"io"
 	"io/ioutil"
 	"os"
@@ -105,7 +106,10 @@ func check(e error, s string) {
 }
 
 func renderContent(s string) string {
-	m := mark.New(s, nil)
+	m := mark.New(s, &mark.Options{
+		Gfm:         false,
+		Smartypants: true,
+	})
 	m.AddRenderFn(mark.NodeCode, func(node mark.Node) (s string) {
 		p, _ := node.(*mark.CodeNode)
 		lineCount, _ := lineCounter(p.Text)
@@ -120,7 +124,7 @@ func renderContent(s string) string {
 		if p.Lang != "" {
 			s += fmt.Sprintf(`<ac:parameter ac:name="language">%s</ac:parameter>`, p.Lang)
 		}
-		s += fmt.Sprintf(`<ac:plain-text-body><![CDATA[%s]]></ac:plain-text-body>`, p.Text)
+		s += fmt.Sprintf(`<ac:plain-text-body><![CDATA[%s]]></ac:plain-text-body>`, html.UnescapeString(p.Text))
 		s += `</ac:structured-macro>`
 		return s
 	})
