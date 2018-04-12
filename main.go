@@ -13,17 +13,24 @@ import (
 )
 
 var (
-	spacePtr = flag.String("space", "", "space in which page should be created. Defaults to user's personal space")
-	titlePtr = flag.String("title", "", "title for page. Defaults to file name without .md extension")
-	filePtr  = flag.String("file", "", "markdown file to sync with Confluence")
-	debugPtr = flag.Bool("debug", false, "enable debug logging")
-	username = os.Getenv("CONFLUENCE_USERNAME")
-	password = os.Getenv("CONFLUENCE_PASSWORD")
-	endpoint = os.Getenv("CONFLUENCE_ENDPOINT")
+	spacePtr   = flag.String("space", "", "space in which page should be created. Defaults to user's personal space")
+	titlePtr   = flag.String("title", "", "title for page. Defaults to file name without .md extension")
+	filePtr    = flag.String("file", "", "markdown file to sync with Confluence")
+	debugPtr   = flag.Bool("debug", false, "enable debug logging")
+	versionPtr = flag.Bool("version", false, "display current version")
+	username   = os.Getenv("CONFLUENCE_USERNAME")
+	password   = os.Getenv("CONFLUENCE_PASSWORD")
+	endpoint   = os.Getenv("CONFLUENCE_ENDPOINT")
 )
 
 func main() {
 	flag.Parse()
+
+	if *versionPtr {
+		fmt.Println("v1.1.0")
+		os.Exit(0)
+	}
+
 	validateInput(username, "environment variable CONFLUENCE_USERNAME not set")
 	validateInput(password, "environment variable CONFLUENCE_PASSWORD not set")
 	validateInput(endpoint, "environment variable CONFLUENCE_ENDPOINT not set")
