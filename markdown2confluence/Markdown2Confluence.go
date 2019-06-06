@@ -19,6 +19,7 @@ type Markdown2Confluence struct {
 	Space          string
 	Title          string
 	File           string
+	Ancestor       string
 	Debug          bool
 	Username       string
 	Password       string
@@ -72,19 +73,19 @@ func (m Markdown2Confluence) Validate() error {
 }
 
 // Run the sync
-func (m *Markdown2Confluence) Run() error {
+func (m *Markdown2Confluence) Run() []error {
 	var markdownFiles []MarkdownFile
 
 	for _, f := range m.SourceMarkdown {
 		file, err := os.Open(f)
 		defer file.Close()
 		if err != nil {
-			return fmt.Errorf("Error opening file %s", err)
+			return []error{fmt.Errorf("Error opening file %s", err)}
 		}
 
 		stat, err := file.Stat()
 		if err != nil {
-			return fmt.Errorf("Error reading file meta %s", err)
+			return []error{fmt.Errorf("Error reading file meta %s", err)}
 		}
 		if stat.IsDir() {
 			err := filepath.Walk(f,
@@ -94,15 +95,15 @@ func (m *Markdown2Confluence) Run() error {
 					}
 					if strings.HasSuffix(path, ".md") {
 						markdownFiles = append(markdownFiles, MarkdownFile{
-							Path:   path,
-							Parent: filepath.Base(filepath.Dir(path)),
-							Title:  strings.TrimSuffix(filepath.Base(path), ".md"),
+							Path:    path,
+							Parents: strings.Split(filepath.Dir(strings.TrimPrefix(filepath.ToSlash(path), filepath.ToSlash(f))), "/"),
+							Title:   strings.TrimSuffix(filepath.Base(path), ".md"),
 						})
 					}
 					return nil
 				})
 			if err != nil {
-				fmt.Println(err)
+				return []error{fmt.Errorf("Unable to walk path: %s", f)}
 			}
 
 		} else {
@@ -113,14 +114,15 @@ func (m *Markdown2Confluence) Run() error {
 		}
 	}
 
+	var errors []error
 	for _, markdownFile := range markdownFiles {
 		url, err := markdownFile.Upload(m)
 		if err != nil {
-			return fmt.Errorf("Unable to upload markdown file, %s: \n\t%s", markdownFile.Path, err)
+			errors = append(errors, fmt.Errorf("Unable to upload markdown file, %s: \n\t%s", markdownFile.Path, err))
 		}
-		fmt.Printf("%s: %s \n", markdownFile.Title, url)
+		fmt.Println(strings.TrimPrefix(fmt.Sprintf("%s - %s: %s", strings.TrimPrefix(strings.Join(markdownFile.Parents, "/"), "/"), markdownFile.Title, url), " - "))
 	}
-	return nil
+	return errors
 }
 
 func validateInput(s string, msg string) {
