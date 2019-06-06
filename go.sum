@@ -14,8 +14,6 @@ github.com/inconshreveable/mousetrap v1.0.0 h1:Z8tu5sraLXCXIcARxBp/8cbvlwVa7Z1NH
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/justmiles/go-confluence v0.0.0-20180326163804-fe48ca68e550 h1:OF4sgjXFHdUuHsXzoo4mWwKLo+xBGo8yooOpW4eES0U=
 github.com/justmiles/go-confluence v0.0.0-20180326163804-fe48ca68e550/go.mod h1:Ttbw+7P/rSXaV6ZzxWtmpuZAuII1UK3vEIM8GSPMG9M=
-github.com/justmiles/mark v0.1.0 h1:jdXf9tlj5cZElEtFmnEtHiYH0MYWeMEB2cMzJyk7OTs=
-github.com/justmiles/mark v0.1.0/go.mod h1:vgnDVVdyX1I/MkYXNZ+tUy/sx2XR7iBB0937vT67EnI=
 github.com/justmiles/mark v0.1.1-0.20190601173636-c076c124ac41 h1:6ckUTxUXW0juguqV1aCIDdBWjG+7jr2kYnLDIRlwZKg=
 github.com/justmiles/mark v0.1.1-0.20190601173636-c076c124ac41/go.mod h1:vgnDVVdyX1I/MkYXNZ+tUy/sx2XR7iBB0937vT67EnI=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1 h1:mweAR1A6xJ3oS2pRaGiHgQ4OO8tzTaLawm8vnODuwDk=
