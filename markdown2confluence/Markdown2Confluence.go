@@ -15,7 +15,7 @@ const (
 	DefaultEndpoint = "https://mydomain.atlassian.net/wiki"
 
 	// Parallelism determines how many files to convert and upload at a time
-	Parallelism = 20
+	Parallelism = 5
 )
 
 // Markdown2Confluence stores the settings for each run
