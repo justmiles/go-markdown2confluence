@@ -61,7 +61,6 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 		if err != nil {
 			return url, err
 		}
-
 	}
 
 	// if page exists, update it
