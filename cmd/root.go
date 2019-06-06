@@ -19,7 +19,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&m.Space, "space", "s", "", "Space in which page should be created")
 	rootCmd.PersistentFlags().StringVarP(&m.Username, "username", "u", "", "Confluence username. (Alternatively set CONFLUENCE_USERNAME environment variable)")
 	rootCmd.PersistentFlags().StringVarP(&m.Password, "password", "p", "", "Confluence password. (Alternatively set CONFLUENCE_PASSWORD environment variable)")
-	rootCmd.PersistentFlags().StringVarP(&m.Ancestor, "ancestor", "a", "", "Ancestor page to nest these documents under")
 	rootCmd.PersistentFlags().StringVarP(&m.Endpoint, "endpoint", "e", markdown2confluence.DefaultEndpoint, "Confluence endpoint. (Alternatively set CONFLUENCE_ENDPOINT environment variable)")
 	rootCmd.PersistentFlags().BoolVarP(&m.Debug, "debug", "d", false, "Enable debug logging")
 

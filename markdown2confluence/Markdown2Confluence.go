@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/justmiles/mark"
 )
@@ -12,6 +13,9 @@ import (
 const (
 	// DefaultEndpoint provides an example endpoint for users
 	DefaultEndpoint = "https://mydomain.atlassian.net/wiki"
+
+	// Parallelism determines how many files to convert and upload at a time
+	Parallelism = 20
 )
 
 // Markdown2Confluence stores the settings for each run
@@ -94,11 +98,17 @@ func (m *Markdown2Confluence) Run() []error {
 						return err
 					}
 					if strings.HasSuffix(path, ".md") {
-						markdownFiles = append(markdownFiles, MarkdownFile{
+						md := MarkdownFile{
 							Path:    path,
 							Parents: strings.Split(filepath.Dir(strings.TrimPrefix(filepath.ToSlash(path), filepath.ToSlash(f))), "/"),
 							Title:   strings.TrimSuffix(filepath.Base(path), ".md"),
-						})
+						}
+						if m.Ancestor != "" {
+							md.Parents = append([]string{m.Ancestor}, md.Parents...)
+							md.Parents = deleteEmpty(md.Parents)
+						}
+
+						markdownFiles = append(markdownFiles, md)
 					}
 					return nil
 				})
@@ -107,22 +117,53 @@ func (m *Markdown2Confluence) Run() []error {
 			}
 
 		} else {
-			markdownFiles = append(markdownFiles, MarkdownFile{
+			md := MarkdownFile{
 				Path:  f,
 				Title: strings.TrimSuffix(filepath.Base(f), ".md"),
-			})
+			}
+
+			if m.Ancestor != "" {
+				md.Parents = append([]string{m.Ancestor}, md.Parents...)
+			}
+
+			markdownFiles = append(markdownFiles, md)
 		}
 	}
 
+	var (
+		wg    = sync.WaitGroup{}
+		queue = make(chan MarkdownFile)
+	)
+
 	var errors []error
+
+	// Process the queue
+	for worker := 0; worker < Parallelism; worker++ {
+		wg.Add(1)
+		go m.queueProcessor(&wg, &queue, &errors)
+	}
+
 	for _, markdownFile := range markdownFiles {
+		queue <- markdownFile
+	}
+
+	close(queue)
+
+	wg.Wait()
+
+	return errors
+}
+
+func (m *Markdown2Confluence) queueProcessor(wg *sync.WaitGroup, queue *chan MarkdownFile, errors *[]error) {
+	defer wg.Done()
+
+	for markdownFile := range *queue {
 		url, err := markdownFile.Upload(m)
 		if err != nil {
-			errors = append(errors, fmt.Errorf("Unable to upload markdown file, %s: \n\t%s", markdownFile.Path, err))
+			*errors = append(*errors, fmt.Errorf("Unable to upload markdown file, %s: \n\t%s", markdownFile.Path, err))
 		}
 		fmt.Println(strings.TrimPrefix(fmt.Sprintf("%s - %s: %s", strings.TrimPrefix(strings.Join(markdownFile.Parents, "/"), "/"), markdownFile.Title, url), " - "))
 	}
-	return errors
 }
 
 func validateInput(s string, msg string) {
@@ -135,4 +176,14 @@ func validateInput(s string, msg string) {
 func renderContent(s string) string {
 	m := mark.New(s, nil)
 	return m.Render()
+}
+
+func deleteEmpty(s []string) []string {
+	var r []string
+	for _, str := range s {
+		if str != "" {
+			r = append(r, str)
+		}
+	}
+	return r
 }
