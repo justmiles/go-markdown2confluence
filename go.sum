@@ -12,6 +12,8 @@ github.com/google/go-querystring v1.0.0/go.mod h1:odCYkC5MyYFN7vkCjXpyrEuKhc/BUO
 github.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T20WEQ=
 github.com/inconshreveable/mousetrap v1.0.0 h1:Z8tu5sraLXCXIcARxBp/8cbvlwVa7Z1NHg9XEKhtSvM=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
+github.com/justmiles/go-confluence v0.0.0-20180326163804-8dad74c h1:dkTMEnxGuxhotLrdu/wVs8/+M81upf4hztb7uhqc3FU=
+github.com/justmiles/go-confluence v0.0.0-20180326163804-8dad74c/go.mod h1:Ttbw+7P/rSXaV6ZzxWtmpuZAuII1UK3vEIM8GSPMG9M=
 github.com/justmiles/go-confluence v0.0.0-20180326163804-fe48ca68e550 h1:OF4sgjXFHdUuHsXzoo4mWwKLo+xBGo8yooOpW4eES0U=
 github.com/justmiles/go-confluence v0.0.0-20180326163804-fe48ca68e550/go.mod h1:Ttbw+7P/rSXaV6ZzxWtmpuZAuII1UK3vEIM8GSPMG9M=
 github.com/justmiles/mark v0.1.1-0.20190601173636-c076c124ac41 h1:6ckUTxUXW0juguqV1aCIDdBWjG+7jr2kYnLDIRlwZKg=
@@ -40,6 +42,8 @@ github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8/go.mod h1:VFNgLljTbGfSG7qAOspJ7OScBnGdDN/yBr0sguwnwf0=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
+github.com/yuin/goldmark v1.0.7 h1:xw+1To1nUhJcMwyAA1O7mHrSpgqKRE12601tiBbH5Po=
+github.com/yuin/goldmark v1.0.7/go.mod h1:GAOXQunDkMxip+WLt/Bb4n4TEwap/Bit20gguI0UhOE=
 golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9 h1:mKdxBk7AujPs8kU4m80U72y/zjbZ3UcXC7dClwKbUI0=
 golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/sys v0.0.0-20181205085412-a5c9d58dba9a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
