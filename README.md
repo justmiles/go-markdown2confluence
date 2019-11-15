@@ -7,9 +7,10 @@ Push markdown files to Confluence Cloud
     sudo chmod +x /usr/local/bin/markdown2confluence
 
 ## Environment Variables
+For best practice we recommend you [authenticate using an API token](https://id.atlassian.com/manage/api-tokens).
 
-- CONFLUENCE_USERNAME - username for Confluence Cloud
-- CONFLUENCE_PASSWORD - password for Confluence Cloud
+- CONFLUENCE_USERNAME - username for Confluence Cloud. When using API tokens set this to your full email.
+- CONFLUENCE_PASSWORD - API token or password for Confluence Cloud
 - CONFLUENCE_ENDPOINT - endpoint for Confluence Cloud, eg `https://mycompanyname.atlassian.net/wiki`
 
 ## Usage of markdown2confluence:
