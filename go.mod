@@ -12,5 +12,5 @@ require (
 	github.com/justmiles/mark v0.1.1-0.20190601173636-c076c124ac41
 	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/spf13/cobra v0.0.4
-	github.com/yuin/goldmark v1.0.7
+	github.com/yuin/goldmark v1.1.0
 )

@@ -1,3 +1,5 @@
+env.sh
 debug
 build
 dist
+.vscode

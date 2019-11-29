@@ -1,8 +1,9 @@
-package markdown2confluence
+package lib
 
 import (
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"github.com/justmiles/go-confluence"
 )
@@ -19,6 +20,14 @@ func (f *MarkdownFile) String() (url string) {
 	return fmt.Sprintf("Path: %s, Title: %s, Parent: %s, Ancestor: %s", f.Path, f.Title, f.Parents, f.Ancestor)
 }
 
+// FormattedPath returns the Path with Parents
+func (f *MarkdownFile) FormattedPath() (s string) {
+	s = strings.Join(append(f.Parents, f.Title), "/")
+	s = strings.TrimPrefix(s, "/")
+	s = strings.TrimPrefix(s, "/")
+	return s
+}
+
 // Upload a markdown file
 func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 	var ancestorID string
@@ -28,8 +37,16 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 		return url, fmt.Errorf("Could not open file %s:\n\t%s", f.Path, err)
 	}
 
+	if m.Debug {
+		fmt.Println(f.Path)
+	}
+
 	wikiContent := string(dat)
-	wikiContent = renderContent(wikiContent)
+	wikiContent, err = renderContent(wikiContent)
+
+	if err != nil {
+		return url, fmt.Errorf("unable to render content from %s: %s", f.Path, err)
+	}
 
 	if m.Debug {
 		fmt.Println("---- RENDERED CONTENT START ---------------------------------")
@@ -69,7 +86,7 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 		content.Version.Number++
 		content.Body.Storage.Representation = "storage"
 		content.Body.Storage.Value = wikiContent
-
+		content.Space.Key = m.Space
 		if ancestorID != "" {
 			content.Ancestors = append(content.Ancestors, Ancestor{
 				ID: ancestorID,
