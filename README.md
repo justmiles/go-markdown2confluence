@@ -7,16 +7,16 @@ Download the [latest release](https://github.com/justmiles/go-markdown2confluenc
 
 - Linux
 
-        curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v3.0.1/markdown2confluence_3.0.1_linux_x86_64.tar.gz
-        sudo tar -xzvf markdown2confluence_3.0.1_linux_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
+        curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v3.0.2/markdown2confluence_3.0.2_linux_x86_64.tar.gz
+        sudo tar -xzvf markdown2confluence_3.0.2_linux_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
 
 - OSX
 
-        curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v3.0.1/markdown2confluence_3.0.1_darwin_x86_64.tar.gz
-        sudo tar -xzvf markdown2confluence_3.0.1_linux_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
+        curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v3.0.2/markdown2confluence_3.0.2_darwin_x86_64.tar.gz
+        sudo tar -xzvf markdown2confluence_3.0.2_linux_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
 
 - Windows
-  - Download [the latest release](https://github.com/justmiles/go-markdown2confluence/releases/download/v3.0.1/markdown2confluence_3.0.1_windows_x86_64.zip) and add to your system `PATH`
+  - Download [the latest release](https://github.com/justmiles/go-markdown2confluence/releases/download/v3.0.2/markdown2confluence_3.0.2_windows_x86_64.zip) and add to your system `PATH`
 
 ## Environment Variables
 For best practice we recommend you [authenticate using an API token](https://id.atlassian.com/manage/api-tokens).
