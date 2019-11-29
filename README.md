@@ -3,8 +3,20 @@ Push markdown files to Confluence Cloud
 
 ## Installation
 
-    sudo curl -L https://github.com/justmiles/go-markdown2confluence/releases/download/v2.0.0/markdown2confluence-2.0.0-linux-amd64 -o /usr/local/bin/markdown2confluence
-    sudo chmod +x /usr/local/bin/markdown2confluence
+Download the [latest release](https://github.com/justmiles/go-markdown2confluence/releases) and add the binary in your local `PATH`
+
+- Linux
+
+        curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v3.0.0/markdown2confluence_3.0.0_linux_x86_64.tar.gz
+        sudo tar -xzvf markdown2confluence_3.0.0_linux_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
+
+- OSX
+
+        curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v3.0.0/markdown2confluence_3.0.0_darwin_x86_64.tar.gz
+        sudo tar -xzvf markdown2confluence_3.0.0_linux_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
+
+- Windows
+  - Download [the latest release](https://github.com/justmiles/go-markdown2confluence/releases/download/v3.0.0/markdown2confluence_3.0.0_windows_x86_64.zip) and add to your system `PATH`
 
 ## Environment Variables
 For best practice we recommend you [authenticate using an API token](https://id.atlassian.com/manage/api-tokens).
