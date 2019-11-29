@@ -139,7 +139,7 @@ func (m *Markdown2Confluence) Run() []error {
 
 						md := MarkdownFile{
 							Path:    path,
-							Parents: strings.Split(filepath.Dir(strings.TrimPrefix(filepath.ToSlash(path), filepath.ToSlash(f))), "/"),
+							Parents: deleteFromSlice(strings.Split(filepath.Dir(strings.TrimPrefix(filepath.ToSlash(path), filepath.ToSlash(f))), "/"), "."),
 							Title:   strings.TrimSuffix(filepath.Base(path), ".md"),
 						}
 
@@ -257,4 +257,14 @@ func deleteEmpty(s []string) []string {
 		}
 	}
 	return r
+}
+
+func deleteFromSlice(s []string, del string) []string {
+	for i, v := range s {
+		if v == del {
+			s = append(s[:i], s[i+1:]...)
+			break
+		}
+	}
+	return s
 }
