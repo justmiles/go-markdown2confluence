@@ -5,12 +5,12 @@ import (
 	"log"
 	"os"
 
-	markdown2confluence "github.com/justmiles/go-markdown2confluence/markdown2confluence"
+	lib "github.com/justmiles/go-markdown2confluence/lib"
 
 	"github.com/spf13/cobra"
 )
 
-var m markdown2confluence.Markdown2Confluence
+var m lib.Markdown2Confluence
 
 func init() {
 	log.SetFlags(0)
@@ -19,8 +19,11 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&m.Space, "space", "s", "", "Space in which page should be created")
 	rootCmd.PersistentFlags().StringVarP(&m.Username, "username", "u", "", "Confluence username. (Alternatively set CONFLUENCE_USERNAME environment variable)")
 	rootCmd.PersistentFlags().StringVarP(&m.Password, "password", "p", "", "Confluence password. (Alternatively set CONFLUENCE_PASSWORD environment variable)")
-	rootCmd.PersistentFlags().StringVarP(&m.Endpoint, "endpoint", "e", markdown2confluence.DefaultEndpoint, "Confluence endpoint. (Alternatively set CONFLUENCE_ENDPOINT environment variable)")
+	rootCmd.PersistentFlags().StringVarP(&m.Endpoint, "endpoint", "e", lib.DefaultEndpoint, "Confluence endpoint. (Alternatively set CONFLUENCE_ENDPOINT environment variable)")
+	rootCmd.PersistentFlags().StringVar(&m.Parent, "parent", "", "Optional parent page to next content under")
 	rootCmd.PersistentFlags().BoolVarP(&m.Debug, "debug", "d", false, "Enable debug logging")
+	rootCmd.PersistentFlags().IntVarP(&m.Since, "modified-since", "m", 0, "Only upload files that have modifed in the past n minutes")
+	rootCmd.PersistentFlags().StringVarP(&m.Title, "title", "t", "", "Set the page title on upload (defaults to filename without extension)")
 
 	m.SourceEnvironmentVariables()
 
@@ -53,7 +56,7 @@ var rootCmd = &cobra.Command{
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute(version string) {
 	rootCmd.Version = version
-	rootCmd.SetVersionTemplate(`{{with .Name}}{{printf "%s " .}}{{end}}{{printf "v%s" .Version}}
+	rootCmd.SetVersionTemplate(`{{with .Name}}{{printf "%s " .}}{{end}}{{printf "%s" .Version}}
 `)
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
