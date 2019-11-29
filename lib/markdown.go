@@ -137,11 +137,19 @@ func (m *Markdown2Confluence) Run() []error {
 							}
 						}
 
-						md = MarkdownFile{
+						md := MarkdownFile{
 							Path:    path,
 							Parents: strings.Split(filepath.Dir(strings.TrimPrefix(filepath.ToSlash(path), filepath.ToSlash(f))), "/"),
 							Title:   strings.TrimSuffix(filepath.Base(path), ".md"),
 						}
+
+						if m.Parent != "" {
+							md.Parents = append([]string{m.Parent}, md.Parents...)
+							md.Parents = deleteEmpty(md.Parents)
+						}
+
+						markdownFiles = append(markdownFiles, md)
+
 					}
 					return nil
 				})
@@ -158,14 +166,15 @@ func (m *Markdown2Confluence) Run() []error {
 			if md.Title == "" {
 				md.Title = strings.TrimSuffix(filepath.Base(f), ".md")
 			}
+
+			if m.Parent != "" {
+				md.Parents = append([]string{m.Parent}, md.Parents...)
+				md.Parents = deleteEmpty(md.Parents)
+			}
+
+			markdownFiles = append(markdownFiles, md)
 		}
 
-		if m.Parent != "" {
-			md.Parents = append([]string{m.Parent}, md.Parents...)
-			md.Parents = deleteEmpty(md.Parents)
-		}
-
-		markdownFiles = append(markdownFiles, md)
 	}
 
 	var (
