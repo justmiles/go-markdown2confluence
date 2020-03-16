@@ -54,15 +54,8 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 		fmt.Println("---- RENDERED CONTENT END -----------------------------------")
 	}
 
-	// Create the Confluence client
-	client := new(confluence.Client)
-	client.Username = m.Username
-	client.Password = m.Password
-	client.Endpoint = m.Endpoint
-	client.Debug = m.Debug
-
 	// search for existing page
-	contentResults, err := client.GetContent(&confluence.GetContentQueryParameters{
+	contentResults, err := m.client.GetContent(&confluence.GetContentQueryParameters{
 		Title:    f.Title,
 		Spacekey: m.Space,
 		Limit:    1,
@@ -74,7 +67,7 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 	}
 
 	if len(f.Parents) > 0 {
-		ancestorID, err = f.FindOrCreateAncestors(m, client)
+		ancestorID, err = f.FindOrCreateAncestors(m)
 		if err != nil {
 			return url, err
 		}
@@ -93,11 +86,11 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 			})
 		}
 
-		content, err = client.UpdateContent(&content, nil)
+		content, err = m.client.UpdateContent(&content, nil)
 		if err != nil {
 			return url, fmt.Errorf("Error updating content: %s", err)
 		}
-		url = client.Endpoint + content.Links.Tinyui
+		url = m.client.Endpoint + content.Links.Tinyui
 
 		// if page does not exist, create it
 	} else {
@@ -115,26 +108,28 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 			})
 		}
 
-		content, err := client.CreateContent(&bp, nil)
+		content, err := m.client.CreateContent(&bp, nil)
 		if err != nil {
 			return url, fmt.Errorf("Error creating page: %s", err)
 		}
-		url = client.Endpoint + content.Links.Tinyui
+		url = m.client.Endpoint + content.Links.Tinyui
 	}
 
 	return url, nil
 }
 
 // FindOrCreateAncestors creates an empty page to represent a local "folder" name
-func (f *MarkdownFile) FindOrCreateAncestors(m *Markdown2Confluence, client *confluence.Client) (ancestorID string, err error) {
+func (f *MarkdownFile) FindOrCreateAncestors(m *Markdown2Confluence) (ancestorID string, err error) {
 
 	for _, parent := range f.Parents {
-		ancestorID, err = f.FindOrCreateAncestor(m, client, ancestorID, parent)
+		ancestorID, err = f.FindOrCreateAncestor(m, m.client, ancestorID, parent)
 		if err != nil {
-			return
+			return "", err
 		}
 	}
-	return
+
+	// Return the last ancestorID
+	return ancestorID, nil
 }
 
 // ParentIndex caches parent page Ids for futures reference

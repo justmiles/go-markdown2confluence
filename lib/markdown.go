@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/justmiles/go-confluence"
 	"github.com/justmiles/mark"
 
 	"bytes"
@@ -43,6 +44,16 @@ type Markdown2Confluence struct {
 	Endpoint       string
 	Parent         string
 	SourceMarkdown []string
+	client         *confluence.Client
+}
+
+// CreateClient returns a new markdown clietn
+func (m *Markdown2Confluence) CreateClient() {
+	m.client = new(confluence.Client)
+	m.client.Username = m.Username
+	m.client.Password = m.Password
+	m.client.Endpoint = m.Endpoint
+	m.client.Debug = m.Debug
 }
 
 // SourceEnvironmentVariables overrides Markdown2Confluence with any environment variables that are set
@@ -97,6 +108,7 @@ func (m Markdown2Confluence) Validate() error {
 func (m *Markdown2Confluence) Run() []error {
 	var markdownFiles []MarkdownFile
 	var now = time.Now()
+	m.CreateClient()
 
 	for _, f := range m.SourceMarkdown {
 		file, err := os.Open(f)
@@ -191,6 +203,17 @@ func (m *Markdown2Confluence) Run() []error {
 	}
 
 	for _, markdownFile := range markdownFiles {
+
+		// Create parent pages synchronously
+		if len(markdownFile.Parents) > 0 {
+			var err error
+			markdownFile.Ancestor, err = markdownFile.FindOrCreateAncestors(m)
+			if err != nil {
+				errors = append(errors, err)
+				continue
+			}
+		}
+
 		queue <- markdownFile
 	}
 
