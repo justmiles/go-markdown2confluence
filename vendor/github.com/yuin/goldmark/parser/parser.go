@@ -56,7 +56,7 @@ func (r *reference) String() string {
 // An IDs interface is a collection of the element ids.
 type IDs interface {
 	// Generate generates a new element id.
-	Generate(value, prefix []byte) []byte
+	Generate(value []byte, kind ast.NodeKind) []byte
 
 	// Put puts a given element id to the used ids table.
 	Put(value []byte)
@@ -72,7 +72,7 @@ func newIDs() IDs {
 	}
 }
 
-func (s *ids) Generate(value, prefix []byte) []byte {
+func (s *ids) Generate(value []byte, kind ast.NodeKind) []byte {
 	value = util.TrimLeftSpace(value)
 	value = util.TrimRightSpace(value)
 	result := []byte{}
@@ -88,13 +88,13 @@ func (s *ids) Generate(value, prefix []byte) []byte {
 				v += 'a' - 'A'
 			}
 			result = append(result, v)
-		} else if util.IsSpace(v) {
+		} else if util.IsSpace(v) || v == '-' || v == '_' {
 			result = append(result, '-')
 		}
 	}
 	if len(result) == 0 {
-		if prefix != nil {
-			result = append(make([]byte, 0, len(prefix)), prefix...)
+		if kind == ast.KindHeading {
+			result = []byte("heading")
 		} else {
 			result = []byte("id")
 		}
@@ -104,7 +104,7 @@ func (s *ids) Generate(value, prefix []byte) []byte {
 		return result
 	}
 	for i := 1; ; i++ {
-		newResult := fmt.Sprintf("%s%d", result, i)
+		newResult := fmt.Sprintf("%s-%d", result, i)
 		if _, ok := s.values[newResult]; !ok {
 			s.values[newResult] = true
 			return []byte(newResult)
@@ -197,8 +197,23 @@ type Context interface {
 	// LastOpenedBlock returns a last node that is currently in parsing.
 	LastOpenedBlock() Block
 
-	// Root returns a context shared accross goroutines.
-	Root() Context
+	// IsInLinkLabel returns true if current position seems to be in link label.
+	IsInLinkLabel() bool
+}
+
+// A ContextConfig struct is a data structure that holds configuration of the Context.
+type ContextConfig struct {
+	IDs IDs
+}
+
+// An ContextOption is a functional option type for the Context.
+type ContextOption func(*ContextConfig)
+
+// WithIDs is a functional option for the Context.
+func WithIDs(ids IDs) ContextOption {
+	return func(c *ContextConfig) {
+		c.IDs = ids
+	}
 }
 
 type parseContext struct {
@@ -210,21 +225,26 @@ type parseContext struct {
 	delimiters    *Delimiter
 	lastDelimiter *Delimiter
 	openedBlocks  []Block
-	root          Context
 }
 
 // NewContext returns a new Context.
-func NewContext() Context {
+func NewContext(options ...ContextOption) Context {
+	cfg := &ContextConfig{
+		IDs: newIDs(),
+	}
+	for _, option := range options {
+		option(cfg)
+	}
+
 	return &parseContext{
 		store:         make([]interface{}, ContextKeyMax+1),
 		refs:          map[string]Reference{},
-		ids:           newIDs(),
+		ids:           cfg.IDs,
 		blockOffset:   -1,
 		blockIndent:   -1,
 		delimiters:    nil,
 		lastDelimiter: nil,
 		openedBlocks:  []Block{},
-		root:          nil,
 	}
 }
 
@@ -361,138 +381,9 @@ func (p *parseContext) LastOpenedBlock() Block {
 	return Block{}
 }
 
-func (p *parseContext) Root() Context {
-	if p.root == nil {
-		return p
-	}
-	return p.root
-}
-
-type concurrentParseContext struct {
-	delegate Context
-	m        sync.RWMutex
-	root     Context
-}
-
-func NewConcurrentContext(delegate Context) Context {
-	return &concurrentParseContext{
-		delegate: delegate,
-		root:     nil,
-	}
-}
-
-func (p *concurrentParseContext) Get(key ContextKey) interface{} {
-	p.m.RLock()
-	defer p.m.RUnlock()
-	ret := p.delegate.Get(key)
-	return ret
-}
-
-func (p *concurrentParseContext) Set(key ContextKey, value interface{}) {
-	p.m.Lock()
-	defer p.m.Unlock()
-	p.delegate.Set(key, value)
-}
-
-func (p *concurrentParseContext) IDs() IDs {
-	return p.delegate.IDs()
-}
-
-func (p *concurrentParseContext) BlockOffset() int {
-	return p.delegate.BlockOffset()
-}
-
-func (p *concurrentParseContext) SetBlockOffset(v int) {
-	p.m.Lock()
-	defer p.m.Unlock()
-	p.delegate.SetBlockOffset(v)
-}
-
-func (p *concurrentParseContext) BlockIndent() int {
-	return p.delegate.BlockIndent()
-}
-
-func (p *concurrentParseContext) SetBlockIndent(v int) {
-	p.m.Lock()
-	defer p.m.Unlock()
-	p.delegate.SetBlockIndent(v)
-}
-
-func (p *concurrentParseContext) LastDelimiter() *Delimiter {
-	return p.delegate.LastDelimiter()
-}
-
-func (p *concurrentParseContext) FirstDelimiter() *Delimiter {
-	return p.delegate.FirstDelimiter()
-}
-
-func (p *concurrentParseContext) PushDelimiter(d *Delimiter) {
-	p.m.Lock()
-	defer p.m.Unlock()
-	p.delegate.PushDelimiter(d)
-}
-
-func (p *concurrentParseContext) RemoveDelimiter(d *Delimiter) {
-	p.m.Lock()
-	defer p.m.Unlock()
-	p.delegate.RemoveDelimiter(d)
-}
-
-func (p *concurrentParseContext) ClearDelimiters(bottom ast.Node) {
-	p.m.Lock()
-	defer p.m.Unlock()
-	p.delegate.ClearDelimiters(bottom)
-}
-
-func (p *concurrentParseContext) AddReference(ref Reference) {
-	p.m.Lock()
-	defer p.m.Unlock()
-	p.delegate.AddReference(ref)
-}
-
-func (p *concurrentParseContext) Reference(label string) (Reference, bool) {
-	p.m.RLock()
-	defer p.m.RUnlock()
-	v, ok := p.delegate.Reference(label)
-	return v, ok
-}
-
-func (p *concurrentParseContext) References() []Reference {
-	p.m.RLock()
-	defer p.m.RUnlock()
-	ret := p.delegate.References()
-	return ret
-}
-
-func (p *concurrentParseContext) String() string {
-	p.m.RLock()
-	defer p.m.RUnlock()
-	ret := p.delegate.String()
-	return ret
-}
-
-func (p *concurrentParseContext) OpenedBlocks() []Block {
-	return p.delegate.OpenedBlocks()
-}
-
-func (p *concurrentParseContext) SetOpenedBlocks(v []Block) {
-	p.m.Lock()
-	defer p.m.Unlock()
-	p.delegate.SetOpenedBlocks(v)
-}
-
-func (p *concurrentParseContext) LastOpenedBlock() Block {
-	p.m.RLock()
-	defer p.m.RUnlock()
-	ret := p.delegate.LastOpenedBlock()
-	return ret
-}
-
-func (p *concurrentParseContext) Root() Context {
-	if p.root == nil {
-		return p
-	}
-	return p.root
+func (p *parseContext) IsInLinkLabel() bool {
+	tlist := p.Get(linkLabelStateKey)
+	return tlist != nil
 }
 
 // State represents parser's state.
@@ -568,7 +459,7 @@ type Parser interface {
 	// Parse parses the given Markdown text into AST nodes.
 	Parse(reader text.Reader, opts ...ParseOption) ast.Node
 
-	// AddOption adds the given option to thie parser.
+	// AddOption adds the given option to this parser.
 	AddOptions(...Option)
 }
 
@@ -614,7 +505,7 @@ type BlockParser interface {
 	// Close will be called when the parser returns Close.
 	Close(node ast.Node, reader text.Reader, pc Context)
 
-	// CanInterruptParagraph returns true if the parser can interrupt pargraphs,
+	// CanInterruptParagraph returns true if the parser can interrupt paragraphs,
 	// otherwise false.
 	CanInterruptParagraph() bool
 
@@ -906,7 +797,6 @@ func (p *parser) addASTTransformer(v util.PrioritizedValue, options map[OptionNa
 // A ParseConfig struct is a data structure that holds configuration of the Parser.Parse.
 type ParseConfig struct {
 	Context Context
-	Workers int
 }
 
 // A ParseOption is a functional option type for the Parser.Parse.
@@ -917,15 +807,6 @@ type ParseOption func(c *ParseConfig)
 func WithContext(context Context) ParseOption {
 	return func(c *ParseConfig) {
 		c.Context = context
-	}
-}
-
-// WithWorkers is a functional option that allow you to set
-// number of inline parsing workers(goroutines).
-// If num is 0, inline parsing will never be multithreaded.
-func WithWorkers(num int) ParseOption {
-	return func(c *ParseConfig) {
-		c.Workers = num
 	}
 }
 
@@ -966,49 +847,14 @@ func (p *parser) Parse(reader text.Reader, opts ...ParseOption) ast.Node {
 	root := ast.NewDocument()
 	p.parseBlocks(root, reader, pc)
 
-	if c.Workers < 2 {
-		blockReader := text.NewBlockReader(reader.Source(), nil)
-		p.walkBlock(root, func(node ast.Node) {
-			p.parseBlock(blockReader, node, pc)
-		})
-	} else {
-		nodes := make([]ast.Node, 0, 100)
-		p.walkBlock(root, func(node ast.Node) {
-			nodes = append(nodes, node)
-		})
-		max := (len(nodes) / c.Workers) - 1
-		if max < 0 {
-			blockReader := text.NewBlockReader(reader.Source(), nil)
-			p.walkBlock(root, func(node ast.Node) {
-				p.parseBlock(blockReader, node, pc)
-			})
-		} else {
-			rootContext := NewConcurrentContext(pc)
-			var wg sync.WaitGroup
-			for i := 0; i <= max; i++ {
-				from := i * c.Workers
-				to := from + c.Workers
-				if i == max {
-					to = len(nodes)
-				}
-				wg.Add(1)
-				go func(wg *sync.WaitGroup) {
-					blockReader := text.NewBlockReader(reader.Source(), nil)
-					pc := NewContext()
-					pc.(*parseContext).root = rootContext
-					for _, n := range nodes[from:to] {
-						p.parseBlock(blockReader, n, pc)
-					}
-					wg.Done()
-				}(&wg)
-			}
-			wg.Wait()
-		}
-	}
+	blockReader := text.NewBlockReader(reader.Source(), nil)
+	p.walkBlock(root, func(node ast.Node) {
+		p.parseBlock(blockReader, node, pc)
+	})
 	for _, at := range p.astTransformers {
 		at.Transform(root, reader, pc)
 	}
-	//root.Dump(reader.Source(), 0)
+	// root.Dump(reader.Source(), 0)
 	return root
 }
 
@@ -1058,7 +904,7 @@ func (p *parser) openBlocks(parent ast.Node, blankLine bool, reader text.Reader,
 retry:
 	var bps []BlockParser
 	line, _ := reader.PeekLine()
-	w, pos := util.IndentWidth(line, 0)
+	w, pos := util.IndentWidth(line, reader.LineOffset())
 	if w >= len(line) {
 		pc.SetBlockOffset(-1)
 		pc.SetBlockIndent(-1)
@@ -1087,7 +933,7 @@ retry:
 		if w > 3 && !bp.CanAcceptIndentedLine() {
 			continue
 		}
-		lastBlock := pc.LastOpenedBlock()
+		lastBlock = pc.LastOpenedBlock()
 		last := lastBlock.Node
 		node, state := bp.Open(parent, reader, pc)
 		if node != nil {
@@ -1153,8 +999,9 @@ type lineStat struct {
 }
 
 func isBlankLine(lineNum, level int, stats []lineStat) bool {
-	ret := false
+	ret := true
 	for i := len(stats) - 1 - level; i >= 0; i-- {
+		ret = false
 		s := stats[i]
 		if s.lineNum == lineNum {
 			if s.level < level && s.isBlank {
@@ -1270,13 +1117,28 @@ func (p *parser) parseBlock(block text.BlockReader, parent ast.Node, pc Context)
 			break
 		}
 		lineLength := len(line)
+		hardlineBreak := false
+		softLinebreak := line[lineLength-1] == '\n'
+		if lineLength >= 2 && line[lineLength-2] == '\\' && softLinebreak { // ends with \\n
+			lineLength -= 2
+			hardlineBreak = true
+
+		} else if lineLength >= 3 && line[lineLength-3] == '\\' && line[lineLength-2] == '\r' && softLinebreak { // ends with \\r\n
+			lineLength -= 3
+			hardlineBreak = true
+		} else if lineLength >= 3 && line[lineLength-3] == ' ' && line[lineLength-2] == ' ' && softLinebreak { // ends with [space][space]\n
+			lineLength -= 3
+			hardlineBreak = true
+		} else if lineLength >= 4 && line[lineLength-4] == ' ' && line[lineLength-3] == ' ' && line[lineLength-2] == '\r' && softLinebreak { // ends with [space][space]\r\n
+			lineLength -= 4
+			hardlineBreak = true
+		}
+
 		l, startPosition := block.Position()
 		n := 0
-		softLinebreak := false
 		for i := 0; i < lineLength; i++ {
 			c := line[i]
 			if c == '\n' {
-				softLinebreak = true
 				break
 			}
 			isSpace := util.IsSpace(c)
@@ -1334,13 +1196,6 @@ func (p *parser) parseBlock(block text.BlockReader, parent ast.Node, pc Context)
 		}
 		diff := startPosition.Between(currentPosition)
 		stop := diff.Stop
-		hardlineBreak := false
-		if lineLength > 2 && line[lineLength-2] == '\\' && softLinebreak { // ends with \\n
-			stop--
-			hardlineBreak = true
-		} else if lineLength > 3 && line[lineLength-3] == ' ' && line[lineLength-2] == ' ' && softLinebreak { // ends with [space][space]\n
-			hardlineBreak = true
-		}
 		rest := diff.WithStop(stop)
 		text := ast.NewTextSegment(rest.TrimRightSpace(source))
 		text.SetSoftLineBreak(softLinebreak)
@@ -1353,5 +1208,4 @@ func (p *parser) parseBlock(block text.BlockReader, parent ast.Node, pc Context)
 	for _, ip := range p.closeBlockers {
 		ip.CloseBlock(parent, block, pc)
 	}
-
 }

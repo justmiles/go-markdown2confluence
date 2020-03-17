@@ -8,9 +8,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func (client *Client) labelEndpoint(contentID string) string {
+	return "/rest/api/content/" + contentID + "/label"
+}
+
 // GetContent Returns all content in a Confluence instance.
 // https://developer.atlassian.com/cloud/confluence/rest/#api-content-get
-func (client Client) GetContent(qp *GetContentQueryParameters) ([]Content, error) {
+func (client *Client) GetContent(qp *GetContentQueryParameters) ([]Content, error) {
 
 	qp.ExpandString = strings.Join(qp.Expand, ",")
 	v, _ := query.Values(qp)
@@ -45,7 +49,7 @@ type GetContentQueryParameters struct {
 
 // CreateContent creates a new piece of content or publishes an existing draft.
 // https://developer.atlassian.com/cloud/confluence/rest/#api-content-post
-func (client Client) CreateContent(bp *CreateContentBodyParameters, qp *QueryParameters) (Content, error) {
+func (client *Client) CreateContent(bp *CreateContentBodyParameters, qp *QueryParameters) (Content, error) {
 	var res Content
 	var queryParams string
 	if qp != nil {
@@ -73,7 +77,7 @@ func (client Client) CreateContent(bp *CreateContentBodyParameters, qp *QueryPar
 
 // UpdateContent updates a piece of content. Use this method to update the title or body of a piece of content, change the status, change the parent page, and more.
 // https://developer.atlassian.com/cloud/confluence/rest/#api-content-id-put
-func (client Client) UpdateContent(content *Content, qp *QueryParameters) (Content, error) {
+func (client *Client) UpdateContent(content *Content, qp *QueryParameters) (Content, error) {
 	var queryParams string
 	if qp != nil {
 		v, _ := query.Values(qp)
@@ -98,6 +102,39 @@ func (client Client) UpdateContent(content *Content, qp *QueryParameters) (Conte
 	return *content, err
 }
 
+// LabelPrefix ...
+type LabelPrefix string
+
+const (
+	// GlobalPrefix ...
+	GlobalPrefix LabelPrefix = "global"
+	// LocalPrefix ...
+	LocalPrefix LabelPrefix = "local"
+)
+
+// AddLabels ...
+func (client *Client) AddLabels(contentID string, labels []string, prefix LabelPrefix) error {
+	type Label struct {
+		Prefix string `json:"prefix"`
+		Name   string `json:"name"`
+	}
+	var labelsContent []Label
+	for _, l := range labels {
+		labelsContent = append(labelsContent, Label{string(prefix), l})
+	}
+
+	jsonbody, err := json.Marshal(labelsContent)
+	if err != nil {
+		return err
+	}
+	labelEndpoint := client.labelEndpoint(contentID)
+	_, err = client.request("POST", labelEndpoint, "", string(jsonbody))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // CreateContentBodyParameters query parameters for CreateContent
 type CreateContentBodyParameters struct {
 	Content
@@ -108,7 +145,7 @@ type CreateContentBodyParameters struct {
 //  - If the content’s type is `page` or `blogpost` and its status is `trashed`, the content will be purged from the trash and deleted permanently. Note, you must also set the `status` query parameter to `trashed` in your request.
 //  - If the content’s type is `comment` or `attachment`, it will be deleted permanently without being trashed.
 // https://developer.atlassian.com/cloud/confluence/rest/#api-content-id-delete
-func (client Client) DeleteContent(content Content) error {
+func (client *Client) DeleteContent(content Content) error {
 	_, err := client.request("DELETE", "/rest/api/content/"+content.ID, "", "")
 	return err
 }
@@ -132,7 +169,8 @@ type Content struct {
 		Key string `json:"key,omitempty"`
 	} `json:"space,omitempty"`
 	Version struct {
-		Number int `json:"number,omitempty"`
+		Number  int    `json:"number,omitempty"`
+		Message string `json:"message,omitempty"`
 	} `json:"version,omitempty"`
 	Body struct {
 		Storage struct {

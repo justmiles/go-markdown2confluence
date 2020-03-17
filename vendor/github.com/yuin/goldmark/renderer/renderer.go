@@ -1,14 +1,13 @@
-// Package renderer	renders the given AST to certain formats.
+// Package renderer renders the given AST to certain formats.
 package renderer
 
 import (
 	"bufio"
 	"io"
+	"sync"
 
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/util"
-
-	"sync"
 )
 
 // A Config struct is a data structure that holds configuration of the Renderer.
@@ -90,7 +89,7 @@ type NodeRendererFuncRegisterer interface {
 type Renderer interface {
 	Render(w io.Writer, source []byte, n ast.Node) error
 
-	// AddOptions adds given option to thie parser.
+	// AddOptions adds given option to this renderer.
 	AddOptions(...Option)
 }
 

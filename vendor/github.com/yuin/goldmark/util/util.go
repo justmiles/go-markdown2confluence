@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
-	"strings"
 	"unicode/utf8"
 )
 
@@ -55,7 +54,7 @@ func (b *CopyOnWriteBuffer) IsCopied() bool {
 	return b.copied
 }
 
-// IsEscapedPunctuation returns true if caracter at a given index i
+// IsEscapedPunctuation returns true if character at a given index i
 // is an escaped punctuation, otherwise false.
 func IsEscapedPunctuation(source []byte, i int) bool {
 	return source[i] == '\\' && i < len(source)-1 && IsPunct(source[i+1])
@@ -91,7 +90,7 @@ func VisualizeSpaces(bs []byte) []byte {
 	bs = bytes.Replace(bs, []byte(" "), []byte("[SPACE]"), -1)
 	bs = bytes.Replace(bs, []byte("\t"), []byte("[TAB]"), -1)
 	bs = bytes.Replace(bs, []byte("\n"), []byte("[NEWLINE]\n"), -1)
-	bs = bytes.Replace(bs, []byte("\r"), []byte("[CR]\n"), -1)
+	bs = bytes.Replace(bs, []byte("\r"), []byte("[CR]"), -1)
 	return bs
 }
 
@@ -229,7 +228,7 @@ func IndentWidth(bs []byte, currentPos int) (width, pos int) {
 	return
 }
 
-// FirstNonSpacePosition returns a potisoin line that is a first nonspace
+// FirstNonSpacePosition returns a position line that is a first nonspace
 // character.
 func FirstNonSpacePosition(bs []byte) int {
 	i := 0
@@ -262,6 +261,7 @@ func FindClosure(bs []byte, opener, closure byte, codeSpan, allowNesting bool) i
 				if bs[i] == '`' {
 					codeSpanCloser++
 				} else {
+					i--
 					break
 				}
 			}
@@ -276,6 +276,7 @@ func FindClosure(bs []byte, opener, closure byte, codeSpan, allowNesting bool) i
 				if bs[i] == '`' {
 					codeSpanOpener++
 				} else {
+					i--
 					break
 				}
 			}
@@ -385,6 +386,52 @@ func TrimRightSpace(source []byte) []byte {
 	return TrimRight(source, spaces)
 }
 
+// DoFullUnicodeCaseFolding performs full unicode case folding to given bytes.
+func DoFullUnicodeCaseFolding(v []byte) []byte {
+	var rbuf []byte
+	cob := NewCopyOnWriteBuffer(v)
+	n := 0
+	for i := 0; i < len(v); i++ {
+		c := v[i]
+		if c < 0xb5 {
+			if c >= 0x41 && c <= 0x5a {
+				// A-Z to a-z
+				cob.Write(v[n:i])
+				cob.WriteByte(c + 32)
+				n = i + 1
+			}
+			continue
+		}
+
+		if !utf8.RuneStart(c) {
+			continue
+		}
+		r, length := utf8.DecodeRune(v[i:])
+		if r == utf8.RuneError {
+			continue
+		}
+		folded, ok := unicodeCaseFoldings[r]
+		if !ok {
+			continue
+		}
+
+		cob.Write(v[n:i])
+		if rbuf == nil {
+			rbuf = make([]byte, 4)
+		}
+		for _, f := range folded {
+			l := utf8.EncodeRune(rbuf, f)
+			cob.Write(rbuf[:l])
+		}
+		i += length - 1
+		n = i + 1
+	}
+	if cob.IsCopied() {
+		cob.Write(v[n:])
+	}
+	return cob.Bytes()
+}
+
 // ReplaceSpaces replaces sequence of spaces with the given repl.
 func ReplaceSpaces(source []byte, repl byte) []byte {
 	var ret []byte
@@ -437,13 +484,14 @@ func ToValidRune(v rune) rune {
 	return v
 }
 
-// ToLinkReference convert given bytes into a valid link reference string.
-// ToLinkReference trims leading and trailing spaces and convert into lower
+// ToLinkReference converts given bytes into a valid link reference string.
+// ToLinkReference performs unicode case folding, trims leading and trailing spaces,  converts into lower
 // case and replace spaces with a single space character.
 func ToLinkReference(v []byte) string {
 	v = TrimLeftSpace(v)
 	v = TrimRightSpace(v)
-	return strings.ToLower(string(ReplaceSpaces(v, ' ')))
+	v = DoFullUnicodeCaseFolding(v)
+	return string(ReplaceSpaces(v, ' '))
 }
 
 var htmlEscapeTable = [256][]byte{nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, []byte("&quot;"), nil, nil, nil, []byte("&amp;"), nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, []byte("&lt;"), nil, []byte("&gt;"), nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
@@ -587,7 +635,7 @@ var htmlSpace = []byte("%20")
 //   2. resolve numeric references
 //   3. resolve entity references
 //
-// URL encoded values (%xx) are keeped as is.
+// URL encoded values (%xx) are kept as is.
 func URLEscape(v []byte, resolveReference bool) []byte {
 	if resolveReference {
 		v = UnescapePunctuations(v)
@@ -620,8 +668,22 @@ func URLEscape(v []byte, resolveReference bool) []byte {
 			n = i
 			continue
 		}
+		if int(u8len) >= len(v) {
+			u8len = int8(len(v) - 1)
+		}
+		if u8len == 0 {
+			i++
+			n = i
+			continue
+		}
 		cob.Write(v[n:i])
-		cob.Write(StringToReadOnlyBytes(url.QueryEscape(string(v[i : i+int(u8len)]))))
+		stop := i + int(u8len)
+		if stop > len(v) {
+			i++
+			n = i
+			continue
+		}
+		cob.Write(StringToReadOnlyBytes(url.QueryEscape(string(v[i:stop]))))
 		i += int(u8len)
 		n = i
 	}
@@ -783,4 +845,99 @@ func (s PrioritizedSlice) Remove(v interface{}) PrioritizedSlice {
 // Prioritized returns a new PrioritizedValue.
 func Prioritized(v interface{}, priority int) PrioritizedValue {
 	return PrioritizedValue{v, priority}
+}
+
+func bytesHash(b []byte) uint64 {
+	var hash uint64 = 5381
+	for _, c := range b {
+		hash = ((hash << 5) + hash) + uint64(c)
+	}
+	return hash
+}
+
+// BytesFilter is a efficient data structure for checking whether bytes exist or not.
+// BytesFilter is thread-safe.
+type BytesFilter interface {
+	// Add adds given bytes to this set.
+	Add([]byte)
+
+	// Contains return true if this set contains given bytes, otherwise false.
+	Contains([]byte) bool
+
+	// Extend copies this filter and adds given bytes to new filter.
+	Extend(...[]byte) BytesFilter
+}
+
+type bytesFilter struct {
+	chars     [256]uint8
+	threshold int
+	slots     [][][]byte
+}
+
+// NewBytesFilter returns a new BytesFilter.
+func NewBytesFilter(elements ...[]byte) BytesFilter {
+	s := &bytesFilter{
+		threshold: 3,
+		slots:     make([][][]byte, 64),
+	}
+	for _, element := range elements {
+		s.Add(element)
+	}
+	return s
+}
+
+func (s *bytesFilter) Add(b []byte) {
+	l := len(b)
+	m := s.threshold
+	if l < s.threshold {
+		m = l
+	}
+	for i := 0; i < m; i++ {
+		s.chars[b[i]] |= 1 << uint8(i)
+	}
+	h := bytesHash(b) % uint64(len(s.slots))
+	slot := s.slots[h]
+	if slot == nil {
+		slot = [][]byte{}
+	}
+	s.slots[h] = append(slot, b)
+}
+
+func (s *bytesFilter) Extend(bs ...[]byte) BytesFilter {
+	newFilter := NewBytesFilter().(*bytesFilter)
+	newFilter.chars = s.chars
+	newFilter.threshold = s.threshold
+	for k, v := range s.slots {
+		newSlot := make([][]byte, len(v))
+		copy(newSlot, v)
+		newFilter.slots[k] = v
+	}
+	for _, b := range bs {
+		newFilter.Add(b)
+	}
+	return newFilter
+}
+
+func (s *bytesFilter) Contains(b []byte) bool {
+	l := len(b)
+	m := s.threshold
+	if l < s.threshold {
+		m = l
+	}
+	for i := 0; i < m; i++ {
+		if (s.chars[b[i]] & (1 << uint8(i))) == 0 {
+			return false
+		}
+	}
+	h := bytesHash(b) % uint64(len(s.slots))
+	slot := s.slots[h]
+	if slot == nil || len(slot) == 0 {
+		return false
+	}
+	for _, element := range slot {
+		if bytes.Equal(element, b) {
+			return true
+		}
+	}
+	return false
 }

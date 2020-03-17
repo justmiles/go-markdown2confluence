@@ -166,20 +166,6 @@ func (b *listParser) Continue(node ast.Node, reader text.Reader, pc Context) Sta
 		}
 		return Continue | HasChildren
 	}
-	// Thematic Breaks take precedence over lists
-	if isThematicBreak(line) {
-		isHeading := false
-		last := pc.LastOpenedBlock().Node
-		if ast.IsParagraph(last) {
-			c, ok := matchesSetextHeadingBar(line)
-			if ok && c == '-' {
-				isHeading = true
-			}
-		}
-		if !isHeading {
-			return Close
-		}
-	}
 
 	// "offset" means a width that bar indicates.
 	//    -  aaaaaaaa
@@ -190,7 +176,7 @@ func (b *listParser) Continue(node ast.Node, reader text.Reader, pc Context) Sta
 	//  - b          <--- current line
 	// it maybe a new child of the list.
 	offset := lastOffset(node)
-	indent, _ := util.IndentWidth(line, 0)
+	indent, _ := util.IndentWidth(line, reader.LineOffset())
 
 	if indent < offset {
 		if indent < 4 {
@@ -200,6 +186,21 @@ func (b *listParser) Continue(node ast.Node, reader text.Reader, pc Context) Sta
 				if !list.CanContinue(marker, typ == orderedList) {
 					return Close
 				}
+				// Thematic Breaks take precedence over lists
+				if isThematicBreak(line[match[3]-1:], 0) {
+					isHeading := false
+					last := pc.LastOpenedBlock().Node
+					if ast.IsParagraph(last) {
+						c, ok := matchesSetextHeadingBar(line)
+						if ok && c == '-' {
+							isHeading = true
+						}
+					}
+					if !isHeading {
+						return Close
+					}
+				}
+
 				return Continue | HasChildren
 			}
 		}

@@ -1,10 +1,11 @@
 package text
 
 import (
-	"github.com/yuin/goldmark/util"
 	"io"
 	"regexp"
 	"unicode/utf8"
+
+	"github.com/yuin/goldmark/util"
 )
 
 const invalidValue = -1
@@ -138,7 +139,7 @@ func (r *reader) LineOffset() int {
 			if r.source[i] == '\t' {
 				v += util.TabWidth(v)
 			} else {
-				v += 1
+				v++
 			}
 		}
 		r.lineOffset = v - r.pos.Padding
@@ -331,7 +332,11 @@ func (r *blockReader) PrecendingCharacter() rune {
 	if r.pos.Padding != 0 {
 		return rune(' ')
 	}
-	if r.pos.Start <= 0 {
+	if r.segments.Len() < 1 {
+		return rune('\n')
+	}
+	firstSegment := r.segments.At(0)
+	if r.line == 0 && r.pos.Start <= firstSegment.Start {
 		return rune('\n')
 	}
 	l := len(r.source)
@@ -355,7 +360,7 @@ func (r *blockReader) LineOffset() int {
 			if r.source[i] == '\t' {
 				v += util.TabWidth(v)
 			} else {
-				v += 1
+				v++
 			}
 		}
 		r.lineOffset = v - r.pos.Padding

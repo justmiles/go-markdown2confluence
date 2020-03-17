@@ -2,52 +2,52 @@ goldmark
 ==========================================
 
 [![http://godoc.org/github.com/yuin/goldmark](https://godoc.org/github.com/yuin/goldmark?status.svg)](http://godoc.org/github.com/yuin/goldmark)
-[![https://travis-ci.org/yuin/goldmark](https://travis-ci.org/yuin/goldmark.svg)](https://travis-ci.org/yuin/goldmark)
-[![https://coveralls.io/r/yuin/goldmark](https://coveralls.io/repos/yuin/goldmark/badge.svg)](https://coveralls.io/r/yuin/goldmark)
+[![https://github.com/yuin/goldmark/actions?query=workflow:test](https://github.com/yuin/goldmark/workflows/test/badge.svg?branch=master&event=push)](https://github.com/yuin/goldmark/actions?query=workflow:test)
+[![https://coveralls.io/github/yuin/goldmark](https://coveralls.io/repos/github/yuin/goldmark/badge.svg?branch=master)](https://coveralls.io/github/yuin/goldmark)
 [![https://goreportcard.com/report/github.com/yuin/goldmark](https://goreportcard.com/badge/github.com/yuin/goldmark)](https://goreportcard.com/report/github.com/yuin/goldmark)
 
-> A markdown parser written in Go. Easy to extend, standard compliant, well structured.
+> A Markdown parser written in Go. Easy to extend, standards-compliant, well-structured.
 
-goldmark is compliant to CommonMark 0.29.
+goldmark is compliant with CommonMark 0.29.
 
 Motivation
 ----------------------
-I need a markdown parser for Go that meets following conditions:
+I needed a Markdown parser for Go that satisfies the following requirements:
 
 - Easy to extend.
-    - Markdown is poor in document expressions compared with other light markup languages like restructuredText.
-    - We have extended a markdown syntax. i.e. : PHPMarkdownExtra, Github Flavored Markdown.
-- Standard compliant.
+    - Markdown is poor in document expressions compared to other light markup languages such as reStructuredText.
+    - We have extensions to the Markdown syntax, e.g. PHP Markdown Extra, GitHub Flavored Markdown.
+- Standards-compliant.
     - Markdown has many dialects.
-    - Github Flavored Markdown is widely used and it is based on CommonMark aside from whether CommonMark is good specification or not.
-        - CommonMark is too complicated and hard to implement.
-- Well structured.
-    - AST based, and preserves source position of nodes.
+    - GitHub-Flavored Markdown is widely used and is based upon CommonMark, effectively mooting the question of whether or not CommonMark is an ideal specification.
+        - CommonMark is complicated and hard to implement.
+- Well-structured.
+    - AST-based; preserves source position of nodes.
 - Written in pure Go.
 
-[golang-commonmark](https://gitlab.com/golang-commonmark/markdown) may be a good choice, but it seems copy of the [markdown-it](https://github.com/markdown-it) .
+[golang-commonmark](https://gitlab.com/golang-commonmark/markdown) may be a good choice, but it seems to be a copy of [markdown-it](https://github.com/markdown-it).
 
-[blackfriday.v2](https://github.com/russross/blackfriday/tree/v2) is a fast and widely used implementation, but it is not CommonMark compliant and can not be extended from outside of the package since it's AST is not interfaces but structs. 
+[blackfriday.v2](https://github.com/russross/blackfriday/tree/v2) is a fast and widely-used implementation, but is not CommonMark-compliant and cannot be extended from outside of the package, since its AST uses structs instead of interfaces.
 
-Furthermore, its behavior differs with other implementations in some cases especially of lists.  ([Deep nested lists don't output correctly #329](https://github.com/russross/blackfriday/issues/329), [List block cannot have a second line #244](https://github.com/russross/blackfriday/issues/244), etc).
+Furthermore, its behavior differs from other implementations in some cases, especially regarding lists: [Deep nested lists don't output correctly #329](https://github.com/russross/blackfriday/issues/329), [List block cannot have a second line #244](https://github.com/russross/blackfriday/issues/244), etc.
 
-This behavior sometimes causes problems. If you migrate your markdown text to blackfriday based wikis from Github, many lists will immediately be broken.
+This behavior sometimes causes problems. If you migrate your Markdown text from GitHub to blackfriday-based wikis, many lists will immediately be broken.
 
-As mentioned above, CommonMark is too complicated and hard to implement, So Markdown parsers based on CommonMark barely exist.
+As mentioned above, CommonMark is complicated and hard to implement, so Markdown parsers based on CommonMark are few and far between.
 
 Features
 ----------------------
 
-- **Standard compliant.** : goldmark get full compliance with latest CommonMark spec.
-- **Extensible.** : Do you want to add a `@username` mention syntax to the markdown?
-  You can easily do it in goldmark. You can add your AST nodes, 
-  parsers for block level elements, parsers for inline level elements, 
-  transformers for paragraphs, transformers for whole AST structure, and
+- **Standards-compliant.**  goldmark is fully compliant with the latest [CommonMark](https://commonmark.org/) specification.
+- **Extensible.**  Do you want to add a `@username` mention syntax to Markdown?
+  You can easily do so in goldmark. You can add your AST nodes,
+  parsers for block-level elements, parsers for inline-level elements,
+  transformers for paragraphs, transformers for the whole AST structure, and
   renderers.
-- **Preformance.** : goldmark performs pretty much equally to the cmark
-  (CommonMark reference implementation written in c).
-- **Robust** : goldmark is tested with [go-fuzz](https://github.com/dvyukov/go-fuzz), a fuzz testing tool.
-- **Builtin extensions.** : goldmark ships with common extensions like tables, strikethrough,
+- **Performance.**  goldmark's performance is on par with that of cmark,
+  the CommonMark reference implementation written in C.
+- **Robust.**  goldmark is tested with [go-fuzz](https://github.com/dvyukov/go-fuzz), a fuzz testing tool.
+- **Built-in extensions.**  goldmark ships with common extensions like tables, strikethrough,
   task lists, and definition lists.
 - **Depends only on standard libraries.**
 
@@ -62,15 +62,15 @@ Usage
 ----------------------
 Import packages:
 
-```
+```go
 import (
-	"bytes"
-	"github.com/yuin/goldmark"
+    "bytes"
+    "github.com/yuin/goldmark"
 )
 ```
 
 
-Convert Markdown documents with the CommonMark compliant mode:
+Convert Markdown documents with the CommonMark-compliant mode:
 
 ```go
 var buf bytes.Buffer
@@ -84,29 +84,32 @@ With options
 
 ```go
 var buf bytes.Buffer
-if err := goldmark.Convert(source, &buf, parser.WithWorkers(16)); err != nil {
+if err := goldmark.Convert(source, &buf, parser.WithContext(ctx)); err != nil {
   panic(err)
 }
 ```
 
 | Functional option | Type | Description |
 | ----------------- | ---- | ----------- |
-| `parser.WithContext` | A parser.Context | Context for the parsing phase. |
-|  parser.WithWorkers | int | Number of goroutines that execute concurrent inline element parsing. |
+| `parser.WithContext` | A `parser.Context` | Context for the parsing phase. |
 
-`parser.WithWorkers` may make performance better a little if markdown text
-is relatively large. Otherwise, `parser.Workers` may cause performance degradation due to
-goroutine overheads.
+Context options
+----------------------
+
+| Functional option | Type | Description |
+| ----------------- | ---- | ----------- |
+| `parser.WithIDs` | A `parser.IDs` | `IDs` allows you to change logics that are related to element id(ex: Auto heading id generation). |
+
 
 Custom parser and renderer
 --------------------------
 ```go
 import (
-	"bytes"
-	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/extension"
-	"github.com/yuin/goldmark/parser"
-	"github.com/yuin/goldmark/renderer/html"
+    "bytes"
+    "github.com/yuin/goldmark"
+    "github.com/yuin/goldmark/extension"
+    "github.com/yuin/goldmark/parser"
+    "github.com/yuin/goldmark/renderer/html"
 )
 
 md := goldmark.New(
@@ -125,6 +128,14 @@ if err := md.Convert(source, &buf); err != nil {
 }
 ```
 
+| Functional option | Type | Description |
+| ----------------- | ---- | ----------- |
+| `goldmark.WithParser` | `parser.Parser`  | This option must be passed before `goldmark.WithParserOptions` and `goldmark.WithExtensions` |
+| `goldmark.WithRenderer` | `renderer.Renderer`  | This option must be passed before `goldmark.WithRendererOptions` and `goldmark.WithExtensions`  |
+| `goldmark.WithParserOptions` | `...parser.Option`  |  |
+| `goldmark.WithRendererOptions` | `...renderer.Option` |  |
+| `goldmark.WithExtensions` | `...goldmark.Extender`  |  |
+
 Parser and Renderer options
 ------------------------------
 
@@ -132,9 +143,10 @@ Parser and Renderer options
 
 | Functional option | Type | Description |
 | ----------------- | ---- | ----------- |
-| `parser.WithBlockParsers` | A `util.PrioritizedSlice` whose elements are `parser.BlockParser` | Parsers for parsing block level elements. | 
-| `parser.WithInlineParsers` | A `util.PrioritizedSlice` whose elements are `parser.InlineParser` | Parsers for parsing inline level elements. | 
-| `parser.WithParagraphTransformers` | A `util.PrioritizedSlice` whose elements are `parser.ParagraphTransformer` | Transformers for transforming paragraph nodes. | 
+| `parser.WithBlockParsers` | A `util.PrioritizedSlice` whose elements are `parser.BlockParser` | Parsers for parsing block level elements. |
+| `parser.WithInlineParsers` | A `util.PrioritizedSlice` whose elements are `parser.InlineParser` | Parsers for parsing inline level elements. |
+| `parser.WithParagraphTransformers` | A `util.PrioritizedSlice` whose elements are `parser.ParagraphTransformer` | Transformers for transforming paragraph nodes. |
+| `parser.WithASTTransformers` | A `util.PrioritizedSlice` whose elements are `parser.ASTTransformer` | Transformers for transforming an AST. |
 | `parser.WithAutoHeadingID` | `-` | Enables auto heading ids. |
 | `parser.WithAttribute` | `-` | Enables custom attributes. Currently only headings supports attributes. |
 
@@ -143,39 +155,39 @@ Parser and Renderer options
 | Functional option | Type | Description |
 | ----------------- | ---- | ----------- |
 | `html.WithWriter` | `html.Writer` | `html.Writer` for writing contents to an `io.Writer`. |
-| `html.WithHardWraps` | `-` | Render new lines as `<br>`.|
+| `html.WithHardWraps` | `-` | Render newlines as `<br>`.|
 | `html.WithXHTML` | `-` | Render as XHTML. |
-| `html.WithUnsafe` | `-` | By default, goldmark does not render raw HTMLs and potentially dangerous links. With this option, goldmark renders these contents as it is. |
+| `html.WithUnsafe` | `-` | By default, goldmark does not render raw HTML or potentially dangerous links. With this option, goldmark renders such content as written. |
 
 ### Built-in extensions
 
 - `extension.Table`
-  - [Github Flavored Markdown: Tables](https://github.github.com/gfm/#tables-extension-)
+    - [GitHub Flavored Markdown: Tables](https://github.github.com/gfm/#tables-extension-)
 - `extension.Strikethrough`
-  - [Github Flavored Markdown: Strikethrough](https://github.github.com/gfm/#strikethrough-extension-)
+    - [GitHub Flavored Markdown: Strikethrough](https://github.github.com/gfm/#strikethrough-extension-)
 - `extension.Linkify`
-  - [Github Flavored Markdown: Autolinks](https://github.github.com/gfm/#autolinks-extension-)
+    - [GitHub Flavored Markdown: Autolinks](https://github.github.com/gfm/#autolinks-extension-)
 - `extension.TaskList`
-  - [Github Flavored Markdown: Task list items](https://github.github.com/gfm/#task-list-items-extension-)
+    - [GitHub Flavored Markdown: Task list items](https://github.github.com/gfm/#task-list-items-extension-)
 - `extension.GFM`
-  - This extension enables Table, Strikethrough, Linkify and TaskList.
-  - This extension does not filter tags defined in [6.11Disallowed Raw HTML (extension)](https://github.github.com/gfm/#disallowed-raw-html-extension-).
-    If you need to filter HTML tags, see [Security](#security)
+    - This extension enables Table, Strikethrough, Linkify and TaskList.
+    - This extension does not filter tags defined in [6.11: Disallowed Raw HTML (extension)](https://github.github.com/gfm/#disallowed-raw-html-extension-).
+    If you need to filter HTML tags, see [Security](#security).
 - `extension.DefinitionList`
-  - [PHP Markdown Extra: Definition lists](https://michelf.ca/projects/php-markdown/extra/#def-list)
+    - [PHP Markdown Extra: Definition lists](https://michelf.ca/projects/php-markdown/extra/#def-list)
 - `extension.Footnote`
-  - [PHP Markdown Extra: Footnotes](https://michelf.ca/projects/php-markdown/extra/#footnotes)
+    - [PHP Markdown Extra: Footnotes](https://michelf.ca/projects/php-markdown/extra/#footnotes)
 - `extension.Typographer`
-  - This extension substitutes punctuations with typographic entities like [smartypants](https://daringfireball.net/projects/smartypants/).
+    - This extension substitutes punctuations with typographic entities like [smartypants](https://daringfireball.net/projects/smartypants/).
 
 ### Attributes
-`parser.WithAttribute` option allows you to define attributes on some elements.
+The `parser.WithAttribute` option allows you to define attributes on some elements.
 
 Currently only headings support attributes.
 
-**Attributes are being discussed in the 
-[CommonMark forum](https://talk.commonmark.org/t/consistent-attribute-syntax/272). 
-This syntax possibly changes in the future.**
+**Attributes are being discussed in the
+[CommonMark forum](https://talk.commonmark.org/t/consistent-attribute-syntax/272).
+This syntax may possibly change in the future.**
 
 
 #### Headings
@@ -193,11 +205,11 @@ heading {#id .className attrName=attrValue}
 
 ### Typographer extension
 
-Typographer extension translates plain ASCII punctuation characters into typographic punctuation HTML entities. 
+The Typographer extension translates plain ASCII punctuation characters into typographic-punctuation HTML entities.
 
 Default substitutions are:
 
-| Punctuation | Default entitiy |
+| Punctuation | Default entity |
 | ------------ | ---------- |
 | `'`           | `&lsquo;`, `&rsquo;` |
 | `"`           | `&ldquo;`, `&rdquo;` |
@@ -207,25 +219,153 @@ Default substitutions are:
 | `<<`       | `&laquo;` |
 | `>>`       | `&raquo;` |
 
-You can overwrite the substitutions by `extensions.WithTypographicSubstitutions`.
+You can override the defualt substitutions via `extensions.WithTypographicSubstitutions`:
 
 ```go
 markdown := goldmark.New(
-	goldmark.WithExtensions(
-		extension.NewTypographer(
-			extension.WithTypographicSubstitutions(extension.TypographicSubstitutions{
-				extension.LeftSingleQuote:  []byte("&sbquo;"),
-				extension.RightSingleQuote: nil, // nil disables a substitution
-			}),
-		),
-	),
+    goldmark.WithExtensions(
+        extension.NewTypographer(
+            extension.WithTypographicSubstitutions(extension.TypographicSubstitutions{
+                extension.LeftSingleQuote:  []byte("&sbquo;"),
+                extension.RightSingleQuote: nil, // nil disables a substitution
+            }),
+        ),
+    ),
 )
 ```
 
+### Linkify extension
 
+The Linkify extension implements [Autolinks(extension)](https://github.github.com/gfm/#autolinks-extension-), as
+defined in [GitHub Flavored Markdown Spec](https://github.github.com/gfm/).
 
-Create extensions
+Since the spec does not define details about URLs, there are numerous ambiguous cases.
+
+You can override autolinking patterns via options.
+
+| Functional option | Type | Description |
+| ----------------- | ---- | ----------- |
+| `extension.WithLinkifyAllowedProtocols` | `[][]byte` | List of allowed protocols such as `[][]byte{ []byte("http:") }` |
+| `extension.WithLinkifyURLRegexp` | `*regexp.Regexp` | Regexp that defines URLs, including protocols |
+| `extension.WithLinkifyWWWRegexp` | `*regexp.Regexp` | Regexp that defines URL starting with `www.`. This pattern corresponds to [the extended www autolink](https://github.github.com/gfm/#extended-www-autolink) |
+| `extension.WithLinkifyEmailRegexp` | `*regexp.Regexp` | Regexp that defines email addresses` |
+
+Example, using [xurls](https://github.com/mvdan/xurls):
+
+```go
+import "mvdan.cc/xurls/v2"
+
+markdown := goldmark.New(
+    goldmark.WithRendererOptions(
+        html.WithXHTML(),
+        html.WithUnsafe(),
+    ),
+    goldmark.WithExtensions(
+        extension.NewLinkify(
+            extension.WithLinkifyAllowedProtocols([][]byte{
+                []byte("http:"),
+                []byte("https:"),
+            }),
+            extension.WithLinkifyURLRegexp(
+                xurls.Strict(),
+            ),
+        ),
+    ),
+)
+```
+
+Security
 --------------------
+By default, goldmark does not render raw HTML or potentially-dangerous URLs.
+If you need to gain more control over untrusted contents, it is recommended that you
+use an HTML sanitizer such as [bluemonday](https://github.com/microcosm-cc/bluemonday).
+
+Benchmark
+--------------------
+You can run this benchmark in the `_benchmark` directory.
+
+### against other golang libraries
+
+blackfriday v2 seems to be the fastest, but as it is not CommonMark compliant, its performance cannot be directly compared to that of the CommonMark-compliant libraries.
+
+goldmark, meanwhile, builds a clean, extensible AST structure, achieves full compliance with
+CommonMark, and consumes less memory, all while being reasonably fast.
+
+```
+goos: darwin
+goarch: amd64
+BenchmarkMarkdown/Blackfriday-v2-12                  326           3465240 ns/op         3298861 B/op      20047 allocs/op
+BenchmarkMarkdown/GoldMark-12                        303           3927494 ns/op         2574809 B/op      13853 allocs/op
+BenchmarkMarkdown/CommonMark-12                      244           4900853 ns/op         2753851 B/op      20527 allocs/op
+BenchmarkMarkdown/Lute-12                            130           9195245 ns/op         9175030 B/op     123534 allocs/op
+BenchmarkMarkdown/GoMarkdown-12                        9         113541994 ns/op         2187472 B/op      22173 allocs/op
+```
+
+### against cmark (CommonMark reference implementation written in C)
+
+```
+----------- cmark -----------
+file: _data.md
+iteration: 50
+average: 0.0037760639 sec
+go run ./goldmark_benchmark.go
+------- goldmark -------
+file: _data.md
+iteration: 50
+average: 0.0040964230 sec
+```
+
+As you can see, goldmark's performance is on par with cmark's.
+
+Extensions
+--------------------
+
+- [goldmark-meta](https://github.com/yuin/goldmark-meta): A YAML metadata
+  extension for the goldmark Markdown parser.
+- [goldmark-highlighting](https://github.com/yuin/goldmark-highlighting): A syntax-highlighting extension
+  for the goldmark markdown parser.
+- [goldmark-mathjax](https://github.com/litao91/goldmark-mathjax): Mathjax support for the goldmark markdown parser
+
+goldmark internal(for extension developers)
+----------------------------------------------
+### Overview
+goldmark's Markdown processing is outlined in the diagram below.
+
+```
+            <Markdown in []byte, parser.Context>
+                           |
+                           V
+            +-------- parser.Parser ---------------------------
+            | 1. Parse block elements into AST
+            |   1. If a parsed block is a paragraph, apply 
+            |      ast.ParagraphTransformer
+            | 2. Traverse AST and parse blocks.
+            |   1. Process delimiters(emphasis) at the end of
+            |      block parsing
+            | 3. Apply parser.ASTTransformers to AST
+                           |
+                           V
+                      <ast.Node>
+                           |
+                           V
+            +------- renderer.Renderer ------------------------
+            | 1. Traverse AST and apply renderer.NodeRenderer
+            |    corespond to the node type
+
+                           |
+                           V
+                        <Output>
+```
+
+### Parsing
+Markdown documents are read through `text.Reader` interface.
+
+AST nodes do not have concrete text. AST nodes have segment information of the documents, represented by `text.Segment` .
+
+`text.Segment` has 3 attributes: `Start`, `End`, `Padding` .
+
+(TBC)
+
 **TODO**
 
 See `extension` directory for examples of extensions.
@@ -237,63 +377,6 @@ Summary:
 3. Write a renderer that implements `renderer.NodeRenderer`.
 4. Define your goldmark extension that implements `goldmark.Extender`.
 
-Security
---------------------
-By default, goldmark does not render raw HTMLs and potentially dangerous urls.
-If you need to gain more control over untrusted contents, it is recommended to
-use HTML sanitizer such as [bluemonday](https://github.com/microcosm-cc/bluemonday).
-
-Benchmark
---------------------
-You can run this benchmark in the `_benchmark` directory.
-
-### against other golang libraries
-
-blackfriday v2 seems fastest, but it is not CommonMark compiliant so performance of the
-blackfriday v2 can not simply be compared with other Commonmark compliant libraries.
-
-Though goldmark builds clean extensible AST structure and get full compliance with 
-Commonmark, it is resonably fast and less memory consumption.
-
-This benchmark parses a relatively large markdown text. In such text, concurrent parsing
-makes performance better a little.
-
-```
-BenchmarkMarkdown/Blackfriday-v2-4                   300           5316935 ns/op         3321072 B/op      20050 allocs/op
-BenchmarkMarkdown/GoldMark(workers=16)-4             300           5506219 ns/op         2702358 B/op      14494 allocs/op
-BenchmarkMarkdown/GoldMark-4                         200           5903779 ns/op         2594304 B/op      13861 allocs/op
-BenchmarkMarkdown/CommonMark-4                       200           7147659 ns/op         2752977 B/op      18827 allocs/op
-BenchmarkMarkdown/Lute-4                             200           5930621 ns/op         2839712 B/op      21165 allocs/op
-BenchmarkMarkdown/GoMarkdown-4                        10         120953070 ns/op         2192278 B/op      22174 allocs/op
-```
-
-### against cmark(A CommonMark reference implementation written in c)
-
-```
------------ cmark -----------
-file: _data.md
-iteration: 50
-average: 0.0047014618 sec
-------- goldmark -------
-file: _data.md
-iteration: 50
-average: 0.0052624750 sec
-------- goldmark(workers=16) -------
-file: _data.md
-iteration: 50
-average: 0.0044918780 sec
-```
-
-As you can see, goldmark performs pretty much equally to the cmark.
-
-Extensions
---------------------
-
-- [goldmark-meta](https://github.com/yuin/goldmark-meta) : A YAML metadata 
-  extension for the goldmark markdown parser.
-- [goldmark-highlighting](https://github.com/yuin/goldmark-highlighting) : A Syntax highlighting extension 
-  for the goldmark markdown parser. 
-- [goldmark-mathjax](https://github.com/litao91/goldmark-mathjax) : Mathjax support for goldmark markdown parser
 
 Donation
 --------------------

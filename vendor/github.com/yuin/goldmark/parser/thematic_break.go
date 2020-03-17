@@ -11,14 +11,14 @@ type thematicBreakPraser struct {
 
 var defaultThematicBreakPraser = &thematicBreakPraser{}
 
-// NewThematicBreakPraser returns a new BlockParser that
+// NewThematicBreakParser returns a new BlockParser that
 // parses thematic breaks.
 func NewThematicBreakParser() BlockParser {
 	return defaultThematicBreakPraser
 }
 
-func isThematicBreak(line []byte) bool {
-	w, pos := util.IndentWidth(line, 0)
+func isThematicBreak(line []byte, offset int) bool {
+	w, pos := util.IndentWidth(line, offset)
 	if w > 3 {
 		return false
 	}
@@ -51,7 +51,7 @@ func (b *thematicBreakPraser) Trigger() []byte {
 
 func (b *thematicBreakPraser) Open(parent ast.Node, reader text.Reader, pc Context) (ast.Node, State) {
 	line, segment := reader.PeekLine()
-	if isThematicBreak(line) {
+	if isThematicBreak(line, reader.LineOffset()) {
 		reader.Advance(segment.Len() - 1)
 		return ast.NewThematicBreak(), NoChildren
 	}

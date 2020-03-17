@@ -96,6 +96,9 @@ func (b *atxHeadingParser) Open(parent ast.Node, reader text.Reader, pc Context)
 		return nil, NoChildren
 	}
 	start := i + l
+	if start >= len(line) {
+		start = len(line) - 1
+	}
 	origstart := start
 	stop := len(line) - util.TrimRightSpaceLength(line)
 
@@ -105,19 +108,19 @@ func (b *atxHeadingParser) Open(parent ast.Node, reader text.Reader, pc Context)
 		start--
 		closureClose := -1
 		closureOpen := -1
-		for i := start; i < stop; {
-			c := line[i]
-			if util.IsEscapedPunctuation(line, i) {
-				i += 2
-			} else if util.IsSpace(c) && i < stop-1 && line[i+1] == '#' {
-				closureOpen = i + 1
-				j := i + 1
-				for ; j < stop && line[j] == '#'; j++ {
+		for j := start; j < stop; {
+			c := line[j]
+			if util.IsEscapedPunctuation(line, j) {
+				j += 2
+			} else if util.IsSpace(c) && j < stop-1 && line[j+1] == '#' {
+				closureOpen = j + 1
+				k := j + 1
+				for ; k < stop && line[k] == '#'; k++ {
 				}
-				closureClose = j
+				closureClose = k
 				break
 			} else {
-				i++
+				j++
 			}
 		}
 		if closureClose > 0 {
@@ -128,7 +131,7 @@ func (b *atxHeadingParser) Open(parent ast.Node, reader text.Reader, pc Context)
 				for _, attr := range attrs {
 					node.SetAttribute(attr.Name, attr.Value)
 				}
-				node.Lines().Append(text.NewSegment(segment.Start+start+1, segment.Start+closureOpen))
+				node.Lines().Append(text.NewSegment(segment.Start+start+1-segment.Padding, segment.Start+closureOpen-segment.Padding))
 			}
 		}
 	}
@@ -136,7 +139,7 @@ func (b *atxHeadingParser) Open(parent ast.Node, reader text.Reader, pc Context)
 		start = origstart
 		stop := len(line) - util.TrimRightSpaceLength(line)
 		if stop <= start { // empty headings like '##[space]'
-			stop = start + 1
+			stop = start
 		} else {
 			i = stop - 1
 			for ; line[i] == '#' && i >= start; i-- {
@@ -149,7 +152,7 @@ func (b *atxHeadingParser) Open(parent ast.Node, reader text.Reader, pc Context)
 		}
 
 		if len(util.TrimRight(line[start:stop], []byte{'#'})) != 0 { // empty heading like '### ###'
-			node.Lines().Append(text.NewSegment(segment.Start+start, segment.Start+stop))
+			node.Lines().Append(text.NewSegment(segment.Start+start-segment.Padding, segment.Start+stop-segment.Padding))
 		}
 	}
 	return node, NoChildren
@@ -168,9 +171,11 @@ func (b *atxHeadingParser) Close(node ast.Node, reader text.Reader, pc Context) 
 	}
 
 	if b.AutoHeadingID {
-		_, ok := node.AttributeString("id")
+		id, ok := node.AttributeString("id")
 		if !ok {
 			generateAutoHeadingID(node.(*ast.Heading), reader, pc)
+		} else {
+			pc.IDs().Put(id.([]byte))
 		}
 	}
 }
@@ -183,18 +188,22 @@ func (b *atxHeadingParser) CanAcceptIndentedLine() bool {
 	return false
 }
 
-var attrAutoHeadingIDPrefix = []byte("heading")
-
 func generateAutoHeadingID(node *ast.Heading, reader text.Reader, pc Context) {
+	var line []byte
 	lastIndex := node.Lines().Len() - 1
-	lastLine := node.Lines().At(lastIndex)
-	line := lastLine.Value(reader.Source())
-	headingID := pc.IDs().Generate(line, attrAutoHeadingIDPrefix)
+	if lastIndex > -1 {
+		lastLine := node.Lines().At(lastIndex)
+		line = lastLine.Value(reader.Source())
+	}
+	headingID := pc.IDs().Generate(line, ast.KindHeading)
 	node.SetAttribute(attrNameID, headingID)
 }
 
 func parseLastLineAttributes(node ast.Node, reader text.Reader, pc Context) {
 	lastIndex := node.Lines().Len() - 1
+	if lastIndex < 0 { // empty headings
+		return
+	}
 	lastLine := node.Lines().At(lastIndex)
 	line := lastLine.Value(reader.Source())
 	lr := text.NewReader(line)

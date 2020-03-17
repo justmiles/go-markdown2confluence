@@ -3,9 +3,10 @@ package confluence
 import (
 	"encoding/json"
 	"errors"
+	"time"
+
 	"github.com/google/go-querystring/query"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 // Search searches for content using the Confluence Query Language (CQL)
@@ -24,7 +25,7 @@ import (
 //   for _, searchResult := range searchResults {
 //     fmt.Println(searchResult.Title)
 //   }
-func (client Client) Search(qp *SearchQueryParameters) ([]SearchResult, error) {
+func (client *Client) Search(qp *SearchQueryParameters) ([]SearchResult, error) {
 	var queryParams string
 	if qp != nil {
 		v, _ := query.Values(qp)
