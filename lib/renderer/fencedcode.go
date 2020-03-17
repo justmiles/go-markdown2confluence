@@ -2,7 +2,6 @@ package renderer
 
 import (
 	"github.com/yuin/goldmark/ast"
-	gast "github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/util"
@@ -27,11 +26,11 @@ func NewConfluenceFencedCodeBlockHTMLRender(opts ...html.Option) renderer.NodeRe
 
 // RegisterFuncs implements renderer.NodeRenderer.RegisterFuncs.
 func (r *ConfluenceFencedCodeBlockHTMLRender) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
-	reg.Register(gast.KindFencedCodeBlock, r.renderConfluenceFencedCode)
+	reg.Register(ast.KindFencedCodeBlock, r.renderConfluenceFencedCode)
 }
 
-func (r *ConfluenceFencedCodeBlockHTMLRender) renderConfluenceFencedCode(w util.BufWriter, source []byte, node gast.Node, entering bool) (gast.WalkStatus, error) {
-	n := node.(*gast.FencedCodeBlock)
+func (r *ConfluenceFencedCodeBlockHTMLRender) renderConfluenceFencedCode(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	n := node.(*ast.FencedCodeBlock)
 
 	if entering {
 		language := n.Language(source)

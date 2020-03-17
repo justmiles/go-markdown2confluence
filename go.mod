@@ -2,15 +2,11 @@ module github.com/justmiles/go-markdown2confluence
 
 go 1.12
 
-replace github.com/justmiles/go-markdown2confluence/cmd => ./cmd
-
-replace github.com/justmiles/go-markdown2confluence/markdown2confluence => ./markdown2confluence
-
 require (
 	github.com/google/go-querystring v1.0.0 // indirect
-	github.com/justmiles/go-confluence v0.0.0-20180326163804-8dad74c
-	github.com/justmiles/mark v0.1.1-0.20190601173636-c076c124ac41
+	github.com/justmiles/go-confluence v0.0.0-20200317030333-268fb6ceafbd
+	github.com/naminomare/gogutil v0.0.0-20200209041509-fa8142286c1b // indirect
 	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/spf13/cobra v0.0.4
-	github.com/yuin/goldmark v1.1.0
+	github.com/yuin/goldmark v1.1.25
 )

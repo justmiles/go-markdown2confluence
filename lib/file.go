@@ -42,7 +42,8 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 	}
 
 	wikiContent := string(dat)
-	wikiContent, err = renderContent(wikiContent)
+	var images []string
+	wikiContent, images, err = renderContent(f.Path, wikiContent)
 
 	if err != nil {
 		return url, fmt.Errorf("unable to render content from %s: %s", f.Path, err)
@@ -52,6 +53,10 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 		fmt.Println("---- RENDERED CONTENT START ---------------------------------")
 		fmt.Println(wikiContent)
 		fmt.Println("---- RENDERED CONTENT END -----------------------------------")
+
+		for _, image := range images {
+			fmt.Printf("LOCAL IMAGE FOUND: %s\n", image)
+		}
 	}
 
 	// search for existing page
@@ -73,9 +78,11 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 		}
 	}
 
+	var content confluence.Content
+
 	// if page exists, update it
 	if len(contentResults) > 0 {
-		content := contentResults[0]
+		content = contentResults[0]
 		content.Version.Number++
 		content.Body.Storage.Representation = "storage"
 		content.Body.Storage.Value = wikiContent
@@ -115,7 +122,15 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 		url = m.client.Endpoint + content.Links.Tinyui
 	}
 
-	return url, nil
+	// fmt.Println(content)
+
+	_, errors := m.client.AddUpdateAttachments(content.ID, images)
+	if len(errors) > 0 {
+		fmt.Println(errors)
+		err = errors[0]
+	}
+
+	return url, err
 }
 
 // FindOrCreateAncestors creates an empty page to represent a local "folder" name

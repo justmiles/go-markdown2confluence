@@ -2,7 +2,6 @@ package renderer
 
 import (
 	"github.com/yuin/goldmark/ast"
-	gast "github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/util"
@@ -30,10 +29,10 @@ func NewConfluenceCodeBlockHTMLRender(opts ...html.Option) renderer.NodeRenderer
 
 // RegisterFuncs implements renderer.NodeRenderer.RegisterFuncs.
 func (r *ConfluenceCodeBlockHTMLRender) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
-	reg.Register(gast.KindCodeBlock, r.renderConfluenceCodeBlock)
+	reg.Register(ast.KindCodeBlock, r.renderConfluenceCodeBlock)
 }
 
-func (r *ConfluenceCodeBlockHTMLRender) renderConfluenceCodeBlock(w util.BufWriter, source []byte, n gast.Node, entering bool) (gast.WalkStatus, error) {
+func (r *ConfluenceCodeBlockHTMLRender) renderConfluenceCodeBlock(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
 		s := `<ac:structured-macro ac:name="code" ac:schema-version="1">`
 		s = s + `<ac:parameter ac:name="theme">Confluence</ac:parameter>`

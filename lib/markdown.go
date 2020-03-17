@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,18 +10,12 @@ import (
 	"time"
 
 	"github.com/justmiles/go-confluence"
-	"github.com/justmiles/mark"
-
-	"bytes"
-
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
-	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/renderer/html"
-	"github.com/yuin/goldmark/util"
 
-	r "github.com/justmiles/go-markdown2confluence/lib/renderer"
+	e "github.com/justmiles/go-markdown2confluence/lib/extension"
 )
 
 const (
@@ -243,8 +238,8 @@ func validateInput(s string, msg string) {
 	}
 }
 
-func renderContent(s string) (string, error) {
-
+func renderContent(filePath, s string) (content string, images []string, err error) {
+	confluenceExtension := e.NewConfluenceExtension(filePath)
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM, extension.DefinitionList),
 		goldmark.WithParserOptions(
@@ -254,22 +249,17 @@ func renderContent(s string) (string, error) {
 			html.WithHardWraps(),
 			html.WithXHTML(),
 		),
-		goldmark.WithRendererOptions(renderer.WithNodeRenderers(
-			util.Prioritized(r.NewConfluenceFencedCodeBlockHTMLRender(), 100),
-			util.Prioritized(r.NewConfluenceCodeBlockHTMLRender(), 100),
-		)),
+		goldmark.WithExtensions(
+			confluenceExtension,
+		),
 	)
 
 	var buf bytes.Buffer
 	if err := md.Convert([]byte(s), &buf); err != nil {
-		return "", err
+		return "", nil, err
 	}
-	return buf.String(), nil
-}
 
-func renderContentLegacy(s string) string {
-	m := mark.New(s, nil)
-	return m.Render()
+	return buf.String(), confluenceExtension.Images(), nil
 }
 
 func deleteEmpty(s []string) []string {

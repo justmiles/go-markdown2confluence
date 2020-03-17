@@ -3,3 +3,4 @@ debug
 build
 dist
 .vscode
+*.code-workspace
