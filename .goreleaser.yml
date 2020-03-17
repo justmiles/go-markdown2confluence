@@ -1,4 +1,6 @@
-project_name: markdown2confluence
+before:
+  hooks:
+    - go mod download
 
 builds:
   - env:
@@ -8,22 +10,14 @@ builds:
       - windows
       - linux
     binary: markdown2confluence
-
-archive:
-  replacements:
-    386: i386
-    amd64: x86_64
-  wrap_in_directory: false
-  format_overrides:
-    - goos: windows
-      format: zip
-
+archives:
+  - replacements:
+      386: i386
+      amd64: x86_64
 checksum:
   name_template: "checksums.txt"
-
 snapshot:
   name_template: "{{ .Tag }}"
-
 changelog:
   sort: asc
   filters:
