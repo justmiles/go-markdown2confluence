@@ -43,7 +43,7 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 
 	wikiContent := string(dat)
 	var images []string
-	wikiContent, images, err = renderContent(f.Path, wikiContent)
+	wikiContent, images, err = renderContent(f.Path, wikiContent, m.WithHardWraps)
 
 	if err != nil {
 		return url, fmt.Errorf("unable to render content from %s: %s", f.Path, err)
