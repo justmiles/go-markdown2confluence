@@ -42,6 +42,7 @@ For best practice we recommend you [authenticate using an API token](https://id.
     -s, --space string         Space in which page should be created
     -t, --title string         Set the page title on upload (defaults to filename without extension)
     -u, --username string      Confluence username. (Alternatively set CONFLUENCE_USERNAME environment variable)
+    -w, --hardwraps            Render newlines as <br />
         --version              version for markdown2confluence
 
 ## Examples

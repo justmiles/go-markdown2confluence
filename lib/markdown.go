@@ -33,6 +33,7 @@ type Markdown2Confluence struct {
 	File           string
 	Ancestor       string
 	Debug          bool
+	WithHardWraps  bool
 	Since          int
 	Username       string
 	Password       string
@@ -240,15 +241,21 @@ func validateInput(s string, msg string) {
 
 func renderContent(filePath, s string) (content string, images []string, err error) {
 	confluenceExtension := e.NewConfluenceExtension(filePath)
+	ro := goldmark.WithRendererOptions(
+		html.WithXHTML(),
+	)
+	if m.WithHardWraps {
+		ro = goldmark.WithRendererOptions(
+			html.WithHardWraps(),
+			html.WithXHTML(),
+		)
+	}
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM, extension.DefinitionList),
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(),
 		),
-		goldmark.WithRendererOptions(
-			html.WithHardWraps(),
-			html.WithXHTML(),
-		),
+		ro,
 		goldmark.WithExtensions(
 			confluenceExtension,
 		),
