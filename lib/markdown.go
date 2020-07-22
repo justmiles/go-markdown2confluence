@@ -239,12 +239,12 @@ func validateInput(s string, msg string) {
 	}
 }
 
-func renderContent(filePath, s string) (content string, images []string, err error) {
+func renderContent(filePath, s string, withHardWraps bool) (content string, images []string, err error) {
 	confluenceExtension := e.NewConfluenceExtension(filePath)
 	ro := goldmark.WithRendererOptions(
 		html.WithXHTML(),
 	)
-	if m.WithHardWraps {
+	if withHardWraps {
 		ro = goldmark.WithRendererOptions(
 			html.WithHardWraps(),
 			html.WithXHTML(),
