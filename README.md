@@ -28,20 +28,16 @@ and add the binary in your local `PATH`
   
   Download [the latest release](https://github.com/justmiles/go-markdown2confluence/releases/download/v3.1.2/go-markdown2confluence_3.1.2_windows_x86_64.tar.gz) and add to your system `PATH`
 
-## Build using docker
-
-You can build locally using docker.
-
-### Preparation
+## Use with Docker
 
 ```shell
-docker-compose build make
+docker run justmiles/markdown2confluence --version
 ```
 
-### Building the dist-directory
+### Build using docker
 
 ```shell
-docker-compose run make
+docker run -v $PWD:/src -w /src goreleaser/goreleaser --snapshot --skip-publish --rm-dist
 ```
 
 ## Environment Variables
@@ -54,38 +50,48 @@ For best practice we recommend you [authenticate using an API token](https://id.
 
 ## Usage
 
-    Push markdown files to Confluence Cloud
+```txt
+Push markdown files to Confluence Cloud
 
-    Usage:
-    markdown2confluence [flags] (files or directories)
+Usage:
+markdown2confluence [flags] (files or directories)
 
-    Flags:
-    -d, --debug                Enable debug logging
-    -e, --endpoint string      Confluence endpoint. (Alternatively set CONFLUENCE_ENDPOINT environment variable) (default "https://mydomain.atlassian.net/wiki")
-    -h, --help                 help for markdown2confluence
-    -m, --modified-since int   Only upload files that have modifed in the past n minutes
-        --parent string        Optional parent page to nest content under
-    -p, --password string      Confluence password. (Alternatively set CONFLUENCE_PASSWORD environment variable)
-    -s, --space string         Space in which page should be created
-    -t, --title string         Set the page title on upload (defaults to filename without extension)
-    -u, --username string      Confluence username. (Alternatively set CONFLUENCE_USERNAME environment variable)
-    -w, --hardwraps            Render newlines as <br />
-        --version              version for markdown2confluence
+Flags:
+-d, --debug                Enable debug logging
+-e, --endpoint string      Confluence endpoint. (Alternatively set CONFLUENCE_ENDPOINT environment variable) (default "https://mydomain.atlassian.net/wiki")
+-h, --help                 help for markdown2confluence
+-m, --modified-since int   Only upload files that have modifed in the past n minutes
+    --parent string        Optional parent page to nest content under
+-p, --password string      Confluence password. (Alternatively set CONFLUENCE_PASSWORD environment variable)
+-s, --space string         Space in which page should be created
+-t, --title string         Set the page title on upload (defaults to filename without extension)
+-u, --username string      Confluence username. (Alternatively set CONFLUENCE_USERNAME environment variable)
+-w, --hardwraps            Render newlines as <br />
+    --version              version for markdown2confluence
+```
 
 ## Examples
 
 Upload a local directory of markdown files called `markdown-files` to Confluence.
 
-    markdown2confluence --space 'MyTeamSpace' markdown-files
+```shell
+markdown2confluence --space 'MyTeamSpace' markdown-files
+```
 
 Upload the same directory, but only those modified in the last 30 minutes. This is particurlarly useful for cron jobs/recurring one-way syncs.
 
-    markdown2confluence --space 'MyTeamSpace' --modified-since 30 markdown-files
+```shell
+markdown2confluence --space 'MyTeamSpace' --modified-since 30 markdown-files
+```
 
 Upload a single file
 
-    markdown2confluence --space 'MyTeamSpace' markdown-files/test.md
+```shell
+markdown2confluence --space 'MyTeamSpace' markdown-files/test.md
+```
 
 Upload a directory of markdown files in space `MyTeamSpace` under the parent page `API Docs`
 
-    markdown2confluence --space 'MyTeamSpace' --parent 'API Docs' markdown-files
+```shell
+markdown2confluence --space 'MyTeamSpace' --parent 'API Docs' markdown-files
+```
