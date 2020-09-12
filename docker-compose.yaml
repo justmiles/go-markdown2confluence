@@ -1,0 +1,10 @@
+version: "3.5"
+
+services:
+  make:
+    restart: "no"
+    build:
+      context: .
+    volumes:
+    - .:/src
+    command: /src/make.sh
