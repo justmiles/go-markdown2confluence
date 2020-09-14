@@ -145,10 +145,21 @@ func (m *Markdown2Confluence) Run() []error {
 							}
 						}
 
-						md := MarkdownFile{
+						var tempTitle string
+						var tempParents []string
+
+						if strings.HasSuffix(path, "README.md") {
+							tempTitle = strings.Split(path, "/")[len(strings.Split(path, "/"))-2]
+							tempParents = deleteFromSlice(deleteFromSlice(strings.Split(filepath.Dir(strings.TrimPrefix(filepath.ToSlash(path), filepath.ToSlash(f))), "/"), "."), tempTitle)
+						} else {
+							tempTitle = strings.TrimSuffix(filepath.Base(path), ".md")
+							tempParents = deleteFromSlice(strings.Split(filepath.Dir(strings.TrimPrefix(filepath.ToSlash(path), filepath.ToSlash(f))), "/"), ".")
+						}
+
+						md = MarkdownFile{
 							Path:    path,
-							Parents: deleteFromSlice(strings.Split(filepath.Dir(strings.TrimPrefix(filepath.ToSlash(path), filepath.ToSlash(f))), "/"), "."),
-							Title:   strings.TrimSuffix(filepath.Base(path), ".md"),
+							Parents: tempParents,
+							Title:   tempTitle,
 						}
 
 						if m.Parent != "" {
