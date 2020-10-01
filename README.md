@@ -151,7 +151,4 @@ Which will translate to:
   <ac:parameter ac:name="type">flat</ac:parameter>
   <ac:parameter ac:name="separator">pipe</ac:parameter>
 </ac:structured-macro>
-=======
-```shell
-markdown2confluence --space 'MyTeamSpace' --parent 'API Docs' markdown-files
 ```
