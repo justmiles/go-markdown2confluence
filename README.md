@@ -92,7 +92,8 @@ Upload a directory of markdown files in space `MyTeamSpace` under the parent pag
 
 ## Enhancements
 
-It is possible to insert Confluence macros with fenced code blocks.
+It is possible to insert Confluence macros using fenced code blocks.
+The "language" for this is `CONFLUENCE-MACRO`, exactly like that in all-caps.
 Here is an example for a ToC macro using all headlines starting at Level 2:
 
 ```markdown
