@@ -95,3 +95,60 @@ Upload a directory of markdown files in space `MyTeamSpace` under the parent pag
 ```shell
 markdown2confluence --space 'MyTeamSpace' --parent 'API Docs' markdown-files
 ```
+
+## Enhancements
+
+It is possible to insert Confluence macros using fenced code blocks.
+The "language" for this is `CONFLUENCE-MACRO`, exactly like that in all-caps.
+Here is an example for a ToC macro using all headlines starting at Level 2:
+
+```markdown
+    # Title
+
+    ```CONFLUENCE-MACRO
+    name:toc
+      minLevel:2
+    ```
+
+    ## Section 1
+```
+
+In general almost all macros should be possible.
+The general syntax is:
+
+```markdown
+    ```CONFLUENCE-MACRO
+    name:Name of Macro
+    attribute:Value of Attribute
+      parameter-name:Value of Parameter
+      next-parameter:Value of Parameter
+    ```
+```
+
+So a fully fledged macro could look like:
+
+```markdown
+    ```CONFLUENCE-MACRO
+    name:toc
+    schema-version:1
+      maxLevel:5
+      minLevel:2
+      exclude:Beispiel.*
+      style:none
+      type:flat
+      separator:pipe
+    ```
+```
+
+Which will translate to:
+
+```XML
+<ac:structured-macro ac:name="toc" ac:schema-version="1" >
+  <ac:parameter ac:name="maxLevel">5</ac:parameter>
+  <ac:parameter ac:name="minLevel">2</ac:parameter>
+  <ac:parameter ac:name="exclude">Beispiel.*</ac:parameter>
+  <ac:parameter ac:name="style">none</ac:parameter>
+  <ac:parameter ac:name="type">flat</ac:parameter>
+  <ac:parameter ac:name="separator">pipe</ac:parameter>
+</ac:structured-macro>
+```
