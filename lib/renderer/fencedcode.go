@@ -5,6 +5,7 @@ import (
 	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/util"
+	"strings"
 )
 
 // ConfluenceFencedCodeBlockHTMLRender is a renderer.NodeRenderer implementation that
@@ -31,22 +32,28 @@ func (r *ConfluenceFencedCodeBlockHTMLRender) RegisterFuncs(reg renderer.NodeRen
 
 func (r *ConfluenceFencedCodeBlockHTMLRender) renderConfluenceFencedCode(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.FencedCodeBlock)
-
+	language := n.Language(source)
+	langString := ""
+	if language != nil {
+		langString = string(language)
+	}
 	if entering {
-		language := n.Language(source)
-
-		s := `<ac:structured-macro ac:name="code" ac:schema-version="1">`
-		s = s + `<ac:parameter ac:name="theme">Confluence</ac:parameter>`
-		s = s + `<ac:parameter ac:name="linenumbers">true</ac:parameter>`
-
-		if language != nil {
-			s = s + `<ac:parameter ac:name="language">` + string(language) + `</ac:parameter>`
-		}
-
-		s = s + `<ac:plain-text-body><![CDATA[ `
-		_, _ = w.WriteString(s)
-		r.writeLines(w, source, n)
-	} else {
+		if langString == "CONFLUENCE-MACRO" {
+			r.writeMacro(w, source, n)
+		} else {
+			s := `<ac:structured-macro ac:name="code" ac:schema-version="1">`
+			s = s + `<ac:parameter ac:name="theme">Confluence</ac:parameter>`
+			s = s + `<ac:parameter ac:name="linenumbers">true</ac:parameter>`
+	
+			if language != nil {
+				s = s + `<ac:parameter ac:name="language">` + langString + `</ac:parameter>`
+			}
+	
+			s = s + `<ac:plain-text-body><![CDATA[ `
+			_, _ = w.WriteString(s)
+			r.writeLines(w, source, n)
+			}
+	} else if langString != "CONFLUENCE-MACRO" {
 		s := ` ]]></ac:plain-text-body></ac:structured-macro>`
 		_, _ = w.WriteString(s)
 	}
@@ -59,4 +66,29 @@ func (r *ConfluenceFencedCodeBlockHTMLRender) writeLines(w util.BufWriter, sourc
 		line := n.Lines().At(i)
 		w.WriteString(string(line.Value(source)))
 	}
+}
+
+func (r *ConfluenceFencedCodeBlockHTMLRender) writeMacro(w util.BufWriter, source []byte, n ast.Node) {
+	l := n.Lines().Len()
+	macrostart :=  strings.Builder{}
+	macrostart.WriteString(`<ac:structured-macro`)
+	parameters := strings.Builder{}
+	for i := 0; i < l; i++ {
+		line := n.Lines().At(i)
+		text := string(line.Value(source))
+		keyValue := strings.SplitN(text, ":", 2)
+		if len(keyValue) == 2 {
+			key := strings.TrimSpace(keyValue[0])
+			value := strings.TrimSpace(keyValue[1])
+			if key[0] == keyValue[0][0] {
+				macrostart.WriteString(` ac:` + key + `="` + value + `"`)
+			} else {
+				parameters.WriteString(`<ac:parameter ac:name="` + key +`">` + value + `</ac:parameter>`)
+			}
+		}
+	}
+	w.WriteString(macrostart.String())
+	w.WriteString(">")
+	w.WriteString(parameters.String())
+	w.WriteString("</ac:structured-macro>")
 }
