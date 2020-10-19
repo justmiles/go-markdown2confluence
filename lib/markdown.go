@@ -237,7 +237,7 @@ func (m *Markdown2Confluence) queueProcessor(wg *sync.WaitGroup, queue *chan Mar
 	for markdownFile := range *queue {
 		url, err := markdownFile.Upload(m)
 		if err != nil {
-			*errors = append(*errors, fmt.Errorf("Unable to upload markdown file, %s: \n\t%s", markdownFile.Path, err))
+			*errors = append(*errors, fmt.Errorf("Unable to upload markdown file %s: \n\t%s", markdownFile.Path, err))
 		}
 		fmt.Printf("%s: %s\n", markdownFile.FormattedPath(), url)
 	}
