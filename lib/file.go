@@ -79,7 +79,7 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 	}
 
 	var content confluence.Content
-
+	var currContentID string
 	// if page exists, update it
 	if len(contentResults) > 0 {
 		content = contentResults[0]
@@ -98,6 +98,7 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 			return url, fmt.Errorf("Error updating content: %s", err)
 		}
 		url = m.client.Endpoint + content.Links.Tinyui
+		currContentID = content.ID
 
 		// if page does not exist, create it
 	} else {
@@ -120,11 +121,12 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 			return url, fmt.Errorf("Error creating page: %s", err)
 		}
 		url = m.client.Endpoint + content.Links.Tinyui
+		currContentID = content.ID
 	}
 
-	// fmt.Println(content)
+	fmt.Println("content.ID = " + content.ID + " content_id = " + currContentID)
 
-	_, errors := m.client.AddUpdateAttachments(content.ID, images)
+	_, errors := m.client.AddUpdateAttachments(currContentID, images)
 	if len(errors) > 0 {
 		fmt.Println(errors)
 		err = errors[0]
