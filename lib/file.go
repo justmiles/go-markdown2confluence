@@ -3,6 +3,7 @@ package lib
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"strings"
 
 	"github.com/justmiles/go-confluence"
@@ -16,7 +17,7 @@ type MarkdownFile struct {
 	Ancestor string
 }
 
-func (f *MarkdownFile) String() (url string) {
+func (f *MarkdownFile) String() (link string) {
 	return fmt.Sprintf("Path: %s, Title: %s, Parent: %s, Ancestor: %s", f.Path, f.Title, f.Parents, f.Ancestor)
 }
 
@@ -29,24 +30,25 @@ func (f *MarkdownFile) FormattedPath() (s string) {
 }
 
 // Upload a markdown file
-func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
+func (f *MarkdownFile) Upload(m *Markdown2Confluence) (link string, err error) {
 	var ancestorID string
 	// Content of Wiki
 	dat, err := ioutil.ReadFile(f.Path)
 	if err != nil {
-		return url, fmt.Errorf("Could not open file %s:\n\t%s", f.Path, err)
+		return link, fmt.Errorf("Could not open file %s:\n\t%s", f.Path, err)
 	}
 
 	if m.Debug {
 		fmt.Println(f.Path)
 	}
 
-	wikiContent := string(dat)
+	//unescape unicode path  %xx -> unicode word for some markdown software make escape
+	wikiContent, _ := url.QueryUnescape(string(dat))
 	var images []string
 	wikiContent, images, err = renderContent(f.Path, wikiContent, m.WithHardWraps)
 
 	if err != nil {
-		return url, fmt.Errorf("unable to render content from %s: %s", f.Path, err)
+		return link, fmt.Errorf("unable to render content from %s: %s", f.Path, err)
 	}
 
 	if m.Debug {
@@ -68,13 +70,13 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 		Expand:   []string{"version", "body.storage"},
 	})
 	if err != nil {
-		return url, fmt.Errorf("Error checking for existing page: %s", err)
+		return link, fmt.Errorf("Error checking for existing page: %s", err)
 	}
 
 	if len(f.Parents) > 0 {
 		ancestorID, err = f.FindOrCreateAncestors(m)
 		if err != nil {
-			return url, err
+			return link, err
 		}
 	}
 
@@ -95,9 +97,9 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 
 		content, err = m.client.UpdateContent(&content, nil)
 		if err != nil {
-			return url, fmt.Errorf("Error updating content: %s", err)
+			return link, fmt.Errorf("Error updating content: %s", err)
 		}
-		url = m.client.Endpoint + content.Links.Tinyui
+		link = m.client.Endpoint + content.Links.Tinyui
 		currContentID = content.ID
 
 		// if page does not exist, create it
@@ -118,9 +120,9 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 
 		content, err := m.client.CreateContent(&bp, nil)
 		if err != nil {
-			return url, fmt.Errorf("Error creating page: %s", err)
+			return link, fmt.Errorf("Error creating page: %s", err)
 		}
-		url = m.client.Endpoint + content.Links.Tinyui
+		link = m.client.Endpoint + content.Links.Tinyui
 		currContentID = content.ID
 	}
 
@@ -132,7 +134,7 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (url string, err error) {
 		err = errors[0]
 	}
 
-	return url, err
+	return link, err
 }
 
 // FindOrCreateAncestors creates an empty page to represent a local "folder" name

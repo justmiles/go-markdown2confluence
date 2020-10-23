@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/renderer"
@@ -101,12 +102,17 @@ func RenderImageAttributes(w util.BufWriter, node ast.Node, filter util.BytesFil
 func localFile(filePath string, destination []byte) (string, error) {
 
 	localizedPath := string(destination)
-	if _, err := os.Stat(localizedPath); err == nil {
+	_, err := os.Stat(localizedPath)
+	if err == nil {
 		return localizedPath, nil
 	}
 
-	localizedPath = path.Join(path.Dir(filePath), string(destination))
-	if _, err := os.Stat(localizedPath); err == nil {
+	//path.Dir currDir is workpath so "path.Dir is '.'"
+	//And so make a absolute path for check file
+	localizedAbsPath, _ := filepath.Abs(filePath)
+	localizedPath = path.Join(filepath.Dir(localizedAbsPath), string(destination))
+	_, err = os.Stat(localizedPath)
+	if err == nil {
 		return localizedPath, nil
 	}
 
