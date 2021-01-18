@@ -3,8 +3,11 @@ package lib
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -28,19 +31,21 @@ const (
 
 // Markdown2Confluence stores the settings for each run
 type Markdown2Confluence struct {
-	Space          string
-	Title          string
-	File           string
-	Ancestor       string
-	Debug          bool
-	WithHardWraps  bool
-	Since          int
-	Username       string
-	Password       string
-	Endpoint       string
-	Parent         string
-	SourceMarkdown []string
-	client         *confluence.Client
+	Space               string
+	Title               string
+	File                string
+	Ancestor            string
+	Debug               bool
+	UseDocumentTitle    bool
+	WithHardWraps       bool
+	Since               int
+	Username            string
+	Password            string
+	Endpoint            string
+	Parent              string
+	SourceMarkdown      []string
+	ExcludeFilePatterns []string
+	client              *confluence.Client
 }
 
 // CreateClient returns a new markdown clietn
@@ -100,6 +105,18 @@ func (m Markdown2Confluence) Validate() error {
 	return nil
 }
 
+func (m *Markdown2Confluence) IsExcluded(p string) bool {
+	for _, pattern := range m.ExcludeFilePatterns {
+		r := regexp.MustCompile(pattern)
+		if r.MatchString(p) {
+			fmt.Printf("excluding markdown file '%s': exclude pattern '%s'\n", p, pattern)
+			return true
+		}
+	}
+
+	return false
+}
+
 // Run the sync
 func (m *Markdown2Confluence) Run() []error {
 	var markdownFiles []MarkdownFile
@@ -133,7 +150,7 @@ func (m *Markdown2Confluence) Run() []error {
 						return err
 					}
 
-					if strings.HasSuffix(path, ".md") {
+					if strings.HasSuffix(path, ".md") && !m.IsExcluded(path) {
 
 						// Only include this file if it was modified m.Since minutes ago
 						if m.Since != 0 {
@@ -156,6 +173,13 @@ func (m *Markdown2Confluence) Run() []error {
 							tempParents = deleteFromSlice(strings.Split(filepath.Dir(strings.TrimPrefix(filepath.ToSlash(path), filepath.ToSlash(f))), "/"), ".")
 						}
 
+						if m.UseDocumentTitle == true {
+							doc_title := getDocumentTitle(path)
+							if doc_title != "" {
+								tempTitle = doc_title
+							}
+						}
+
 						md = MarkdownFile{
 							Path:    path,
 							Parents: tempParents,
@@ -163,7 +187,8 @@ func (m *Markdown2Confluence) Run() []error {
 						}
 
 						if m.Parent != "" {
-							md.Parents = append([]string{m.Parent}, md.Parents...)
+							parents := strings.Split(m.Parent, "/")
+							md.Parents = append(parents, md.Parents...)
 							md.Parents = deleteEmpty(md.Parents)
 						}
 
@@ -183,11 +208,17 @@ func (m *Markdown2Confluence) Run() []error {
 			}
 
 			if md.Title == "" {
-				md.Title = strings.TrimSuffix(filepath.Base(f), ".md")
+				if m.UseDocumentTitle == true {
+					md.Title = getDocumentTitle(f)
+				}
+				if md.Title == "" {
+					md.Title = strings.TrimSuffix(filepath.Base(f), ".md")
+				}
 			}
 
 			if m.Parent != "" {
-				md.Parents = append([]string{m.Parent}, md.Parents...)
+				parents := strings.Split(m.Parent, "/")
+				md.Parents = append(parents, md.Parents...)
 				md.Parents = deleteEmpty(md.Parents)
 			}
 
@@ -298,4 +329,25 @@ func deleteFromSlice(s []string, del string) []string {
 		}
 	}
 	return s
+}
+
+func getDocumentTitle(p string) string {
+	// Read file to check for the content
+	file_content, err := ioutil.ReadFile(p)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// Convert []byte to string and print to screen
+	text := string(file_content)
+
+	// check if there is a
+	e := `^#\s+(.+)`
+	r := regexp.MustCompile(e)
+	result := r.FindStringSubmatch(text)
+	if len(result) > 1 {
+		// assign the Title to the matching group
+		return result[1]
+	}
+
+	return ""
 }
