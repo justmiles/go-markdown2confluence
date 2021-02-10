@@ -37,6 +37,7 @@ type Markdown2Confluence struct {
 	Ancestor            string
 	Debug               bool
 	UseDocumentTitle    bool
+	FollowLinks         bool
 	WithHardWraps       bool
 	Since               int
 	Username            string
@@ -193,7 +194,6 @@ func (m *Markdown2Confluence) Run() []error {
 						}
 
 						markdownFiles = append(markdownFiles, md)
-
 					}
 					return nil
 				})
@@ -206,7 +206,6 @@ func (m *Markdown2Confluence) Run() []error {
 				Path:  f,
 				Title: m.Title,
 			}
-
 			if md.Title == "" {
 				if m.UseDocumentTitle == true {
 					md.Title = getDocumentTitle(f)
@@ -215,16 +214,37 @@ func (m *Markdown2Confluence) Run() []error {
 					md.Title = strings.TrimSuffix(filepath.Base(f), ".md")
 				}
 			}
-
 			if m.Parent != "" {
 				parents := strings.Split(m.Parent, "/")
 				md.Parents = append(parents, md.Parents...)
 				md.Parents = deleteEmpty(md.Parents)
 			}
-
 			markdownFiles = append(markdownFiles, md)
 		}
+	}
 
+	linked_documents := map[string]string{}
+	if m.FollowLinks == true {
+		for _, markdownFile := range markdownFiles {
+			linked_documents = getLinkedDocuments(markdownFile.Path, linked_documents)
+		}
+		for _, doc := range linked_documents {
+			md := MarkdownFile{
+				Path:  doc,
+				Title: "",
+			}
+			if m.UseDocumentTitle == true {
+				md.Title = getDocumentTitle(doc)
+			} else {
+				md.Title = strings.TrimSuffix(filepath.Base(doc), ".md")
+			}
+			if m.Parent != "" {
+				parents := strings.Split(m.Parent, "/")
+				md.Parents = append(parents, md.Parents...)
+				md.Parents = deleteEmpty(md.Parents)
+			}
+			markdownFiles = append(markdownFiles, md)
+		}
 	}
 
 	var (
@@ -350,4 +370,42 @@ func getDocumentTitle(p string) string {
 	}
 
 	return ""
+}
+
+func getLinkedDocuments(p string, docs map[string]string) map[string]string {
+	// Read file to check for the content
+	file_root, _ := filepath.Abs(filepath.Dir(p))
+	file_content, err := ioutil.ReadFile(p)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// Convert []byte to string and print to screen
+	text := string(file_content)
+
+	// get all links to md files
+	e := `\[.*\]\((.*\.md)\)`
+	r := regexp.MustCompile(e)
+	matches := r.FindAllStringSubmatch(text, -1)
+
+	for i := range matches {
+		md_file := filepath.Join(file_root, matches[i][1])
+		// check if file is already captured
+		if _, ok := docs[md_file]; ok {
+			// file already captured, continue
+			continue
+		}
+		if _, err := os.Stat(md_file); err == nil {
+			// md file exists exists
+			docs[md_file] = ""
+			docs = getLinkedDocuments(md_file, docs)
+		} else {
+			log.Printf("File %s does not exist. File will be skipped", md_file)
+		}
+	}
+
+	return docs
+}
+
+func isRelative(path string) bool {
+	return false
 }
