@@ -411,12 +411,17 @@ func getLinkedDocuments(p MarkdownFile, m *Markdown2Confluence, docs map[string]
 	text := string(fileContent)
 
 	// get all links to md files
-	e := `\[.*\]\((.*\.md)\)`
-	r := regexp.MustCompile(e)
-	matches := r.FindAllStringSubmatch(text, -1)
+	e1 := `\[.*\]\((.*\.md)\)`
+	e2 := `\[.*\]:(.*)$`
+	r1 := regexp.MustCompile(e1)
+	r2 := regexp.MustCompile(e2)
+	matches1 := r1.FindAllStringSubmatch(text, -1)
+	matches2 := r2.FindAllStringSubmatch(text, -1)
+
+	matches := append(matches1, matches2...)
 
 	for i := range matches {
-		mdFile := filepath.Join(fileRoot, matches[i][1])
+		mdFile := filepath.Join(fileRoot, strings.TrimSpace(matches[i][1]))
 		// check if file is already captured
 		if _, ok := docs[mdFile]; ok {
 			// file already captured, continue
@@ -424,6 +429,10 @@ func getLinkedDocuments(p MarkdownFile, m *Markdown2Confluence, docs map[string]
 		}
 
 		if _, err := os.Stat(mdFile); err == nil {
+			if m.Debug {
+				fmt.Printf("Found linked file '%s' in '%s'\n", mdFile, p.Path)
+			}
+
 			// get relative path to root file
 			dirReferencedFile, _ := filepath.Abs(filepath.Dir(mdFile))
 			dirBaseFile, _ := filepath.Abs(filepath.Dir(p.Path))
@@ -435,9 +444,6 @@ func getLinkedDocuments(p MarkdownFile, m *Markdown2Confluence, docs map[string]
 				relPathComponents := deleteEmpty(strings.Split(filepath.ToSlash(relPath), "/"))
 				parents = append(p.Parents, relPathComponents...)
 			} else {
-				fmt.Printf("dirBaseFile '%s'\n", dirBaseFile)
-				fmt.Printf("dirReferencedFile '%s'\n", dirReferencedFile)
-
 				relPath := strings.Replace(dirBaseFile, dirReferencedFile, "", -1)
 				relPathComponents := deleteEmpty(strings.Split(filepath.ToSlash(relPath), "/"))
 
@@ -448,10 +454,6 @@ func getLinkedDocuments(p MarkdownFile, m *Markdown2Confluence, docs map[string]
 				}
 
 				parents = p.Parents[:len(p.Parents)-len(relPathComponents)]
-			}
-
-			if m.Debug {
-				fmt.Printf("Found linked file '%s' in '%s'\n", mdFile, p.Path)
 			}
 
 			// md file exists exists
@@ -488,12 +490,17 @@ func replaceRelativeLinks(p MarkdownFile, urls map[string]string) (MarkdownFile,
 	textPatched := string(fileContent)
 
 	// get all links to md files
-	e := `\[.*\]\((.*\.md)\)`
-	r := regexp.MustCompile(e)
-	matches := r.FindAllStringSubmatch(textOriginal, -1)
+	e1 := `\[.*\]\((.*\.md)\)`
+	e2 := `\[.*\]:(.*)$`
+	r1 := regexp.MustCompile(e1)
+	r2 := regexp.MustCompile(e2)
+	matches1 := r1.FindAllStringSubmatch(textOriginal, -1)
+	matches2 := r2.FindAllStringSubmatch(textOriginal, -1)
+
+	matches := append(matches1, matches2...)
 
 	for i := range matches {
-		mdFile := filepath.Join(fileRoot, matches[i][1])
+		mdFile := filepath.Join(fileRoot, strings.TrimSpace(matches[i][1]))
 		// check if file is already captured
 		if _, ok := urls[mdFile]; ok {
 			// found confluence page
