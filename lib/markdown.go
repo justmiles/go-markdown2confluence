@@ -47,6 +47,7 @@ type Markdown2Confluence struct {
 	SourceMarkdown      []string
 	ExcludeFilePatterns []string
 	client              *confluence.Client
+	url                 string
 }
 
 // CreateClient returns a new markdown clietn
@@ -175,9 +176,9 @@ func (m *Markdown2Confluence) Run() []error {
 						}
 
 						if m.UseDocumentTitle == true {
-							doc_title := getDocumentTitle(path)
-							if doc_title != "" {
-								tempTitle = doc_title
+							docTitle := getDocumentTitle(path)
+							if docTitle != "" {
+								tempTitle = docTitle
 							}
 						}
 
@@ -223,45 +224,74 @@ func (m *Markdown2Confluence) Run() []error {
 		}
 	}
 
-	linked_documents := map[string]string{}
 	if m.FollowLinks == true {
+		fmt.Print("Detecting linked markdown documents...\n")
+		linkedDocuments := map[string]MarkdownFile{}
+
+		// initialize already captures files
 		for _, markdownFile := range markdownFiles {
-			linked_documents = getLinkedDocuments(markdownFile.Path, linked_documents)
+			linkedDocuments[markdownFile.Path] = markdownFile
 		}
-		for _, doc := range linked_documents {
-			md := MarkdownFile{
-				Path:  doc,
-				Title: "",
-			}
-			if m.UseDocumentTitle == true {
-				md.Title = getDocumentTitle(doc)
-			} else {
-				md.Title = strings.TrimSuffix(filepath.Base(doc), ".md")
-			}
-			if m.Parent != "" {
-				parents := strings.Split(m.Parent, "/")
-				md.Parents = append(parents, md.Parents...)
-				md.Parents = deleteEmpty(md.Parents)
-			}
+
+		for _, markdownFile := range markdownFiles {
+			getLinkedDocuments(markdownFile, m, linkedDocuments)
+		}
+
+		// append all md objects to upload list
+		markdownFiles = []MarkdownFile{}
+		for _, md := range linkedDocuments {
 			markdownFiles = append(markdownFiles, md)
 		}
 	}
 
+	// upload markdown files to confluence
+	fmt.Print("Uploading markdown files...")
+	errors, urls := m.upload(markdownFiles)
+
+	if m.FollowLinks == true {
+		fmt.Print("Patching relative paths in markdown documents...\n")
+		// patch markdownfile with retrieved urls and upload again
+		var markdownFilesPatched []MarkdownFile
+		for _, md := range markdownFiles {
+			mdp, patched := replaceRelativeLinks(md, urls)
+			if patched {
+				if m.Debug {
+					fmt.Printf("File %s: patched successfully with Confluence links\n", md.Path)
+				}
+				markdownFilesPatched = append(markdownFilesPatched, mdp)
+			}
+		}
+		errors2, _ := m.upload(markdownFilesPatched)
+		errors = append(errors, errors2...)
+
+		// clean up temporary files
+		for _, md := range markdownFilesPatched {
+			if m.Debug {
+				fmt.Printf("Removing tempfile %s\n", md.Path)
+			}
+			defer os.Remove(md.Path)
+		}
+	}
+
+	return errors
+}
+
+func (m *Markdown2Confluence) upload(markdownFiles []MarkdownFile) ([]error, map[string]string) {
 	var (
 		wg    = sync.WaitGroup{}
 		queue = make(chan MarkdownFile)
 	)
 
 	var errors []error
+	urls := map[string]string{}
 
 	// Process the queue
 	for worker := 0; worker < Parallelism; worker++ {
 		wg.Add(1)
-		go m.queueProcessor(&wg, &queue, &errors)
+		go m.queueProcessor(&wg, &queue, &errors, urls)
 	}
 
 	for _, markdownFile := range markdownFiles {
-
 		// Create parent pages synchronously
 		if len(markdownFile.Parents) > 0 {
 			var err error
@@ -271,18 +301,15 @@ func (m *Markdown2Confluence) Run() []error {
 				continue
 			}
 		}
-
 		queue <- markdownFile
 	}
-
 	close(queue)
-
 	wg.Wait()
 
-	return errors
+	return errors, urls
 }
 
-func (m *Markdown2Confluence) queueProcessor(wg *sync.WaitGroup, queue *chan MarkdownFile, errors *[]error) {
+func (m *Markdown2Confluence) queueProcessor(wg *sync.WaitGroup, queue *chan MarkdownFile, errors *[]error, urls map[string]string) {
 	defer wg.Done()
 
 	for markdownFile := range *queue {
@@ -290,7 +317,8 @@ func (m *Markdown2Confluence) queueProcessor(wg *sync.WaitGroup, queue *chan Mar
 		if err != nil {
 			*errors = append(*errors, fmt.Errorf("Unable to upload markdown file %s: \n\t%s", markdownFile.Path, err))
 		}
-		fmt.Printf("%s: %s\n", markdownFile.FormattedPath(), url)
+		urls[markdownFile.Path] = url
+		fmt.Printf("--> %s: %s\n", markdownFile.FormattedPath(), url)
 	}
 }
 
@@ -353,12 +381,12 @@ func deleteFromSlice(s []string, del string) []string {
 
 func getDocumentTitle(p string) string {
 	// Read file to check for the content
-	file_content, err := ioutil.ReadFile(p)
+	fileContent, err := ioutil.ReadFile(p)
 	if err != nil {
 		log.Fatal(err)
 	}
 	// Convert []byte to string and print to screen
-	text := string(file_content)
+	text := string(fileContent)
 
 	// check if there is a
 	e := `^#\s+(.+)`
@@ -372,15 +400,15 @@ func getDocumentTitle(p string) string {
 	return ""
 }
 
-func getLinkedDocuments(p string, docs map[string]string) map[string]string {
+func getLinkedDocuments(p MarkdownFile, m *Markdown2Confluence, docs map[string]MarkdownFile) map[string]MarkdownFile {
 	// Read file to check for the content
-	file_root, _ := filepath.Abs(filepath.Dir(p))
-	file_content, err := ioutil.ReadFile(p)
+	fileRoot, _ := filepath.Abs(filepath.Dir(p.Path))
+	fileContent, err := ioutil.ReadFile(p.Path)
 	if err != nil {
 		log.Fatal(err)
 	}
 	// Convert []byte to string and print to screen
-	text := string(file_content)
+	text := string(fileContent)
 
 	// get all links to md files
 	e := `\[.*\]\((.*\.md)\)`
@@ -388,22 +416,110 @@ func getLinkedDocuments(p string, docs map[string]string) map[string]string {
 	matches := r.FindAllStringSubmatch(text, -1)
 
 	for i := range matches {
-		md_file := filepath.Join(file_root, matches[i][1])
+		mdFile := filepath.Join(fileRoot, matches[i][1])
 		// check if file is already captured
-		if _, ok := docs[md_file]; ok {
+		if _, ok := docs[mdFile]; ok {
 			// file already captured, continue
 			continue
 		}
-		if _, err := os.Stat(md_file); err == nil {
+
+		if _, err := os.Stat(mdFile); err == nil {
+			// get relative path to root file
+			dirReferencedFile, _ := filepath.Abs(filepath.Dir(mdFile))
+			dirBaseFile, _ := filepath.Abs(filepath.Dir(p.Path))
+
+			// capture out of tree files
+			var parents []string
+			if len(dirReferencedFile) >= len(dirBaseFile) {
+				relPath := strings.Replace(dirReferencedFile, dirBaseFile, "", -1)
+				relPathComponents := deleteEmpty(strings.Split(filepath.ToSlash(relPath), "/"))
+				parents = append(p.Parents, relPathComponents...)
+			} else {
+				fmt.Printf("dirBaseFile '%s'\n", dirBaseFile)
+				fmt.Printf("dirReferencedFile '%s'\n", dirReferencedFile)
+
+				relPath := strings.Replace(dirBaseFile, dirReferencedFile, "", -1)
+				relPathComponents := deleteEmpty(strings.Split(filepath.ToSlash(relPath), "/"))
+
+				// make sure we do not run out of tree
+				if len(relPathComponents) > len(p.Parents) {
+					fmt.Printf("WARNING: Referenced file '%s' cannot be caputered by parents '%s'. Skipping\n", mdFile, strings.Join(p.Parents[:], "/"))
+					continue
+				}
+
+				parents = p.Parents[:len(p.Parents)-len(relPathComponents)]
+			}
+
+			if m.Debug {
+				fmt.Printf("Found linked file '%s' in '%s'\n", mdFile, p.Path)
+			}
+
 			// md file exists exists
-			docs[md_file] = ""
-			docs = getLinkedDocuments(md_file, docs)
-		} else {
-			log.Printf("File %s does not exist. File will be skipped", md_file)
+			md := MarkdownFile{
+				Path:    mdFile,
+				Parents: parents,
+				Title:   "",
+			}
+
+			if m.UseDocumentTitle == true {
+				md.Title = getDocumentTitle(mdFile)
+			}
+			if md.Title == "" {
+				md.Title = strings.TrimSuffix(filepath.Base(mdFile), ".md")
+			}
+
+			docs[mdFile] = md
+			docs = getLinkedDocuments(docs[mdFile], m, docs)
 		}
 	}
 
 	return docs
+}
+
+func replaceRelativeLinks(p MarkdownFile, urls map[string]string) (MarkdownFile, bool) {
+	// Read file to check for the content
+	fileRoot, _ := filepath.Abs(filepath.Dir(p.Path))
+	fileContent, err := ioutil.ReadFile(p.Path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// Convert []byte to string and print to screen
+	textOriginal := string(fileContent)
+	textPatched := string(fileContent)
+
+	// get all links to md files
+	e := `\[.*\]\((.*\.md)\)`
+	r := regexp.MustCompile(e)
+	matches := r.FindAllStringSubmatch(textOriginal, -1)
+
+	for i := range matches {
+		mdFile := filepath.Join(fileRoot, matches[i][1])
+		// check if file is already captured
+		if _, ok := urls[mdFile]; ok {
+			// found confluence page
+			textPatched = strings.ReplaceAll(textPatched, matches[i][1], urls[mdFile])
+		}
+	}
+
+	// check if there were any changes
+	patched := (textOriginal != textPatched)
+	mdFile := p.Path
+	if patched {
+		file, err := ioutil.TempFile("", "md")
+		if err != nil {
+			log.Fatal(err)
+		}
+		_, err2 := file.WriteString(textPatched)
+		if err2 != nil {
+			log.Fatal(err)
+		}
+		mdFile = file.Name()
+	}
+
+	md := p
+	md.Path = mdFile
+
+	return md, patched
 }
 
 func isRelative(path string) bool {

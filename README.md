@@ -59,7 +59,8 @@ Usage:
 Flags:
   -d, --debug                Enable debug logging
   -e, --endpoint string      Confluence endpoint. (Alternatively set CONFLUENCE_ENDPOINT environment variable) (default "https://mydomain.atlassian.net/wiki")
-  -x, --exclude strings      list of exclude file patterns (regex) that will be applied on markdown file paths
+  -x, --exclude strings      list of exclude file patterns (regex) for that will be applied on markdown file paths
+      --follow-links         If enabled, documents linked (relative) will be followed and uploaded to conflunece as well
   -w, --hardwraps            Render newlines as <br />
   -h, --help                 help for markdown2confluence
   -m, --modified-since int   Only upload files that have modifed in the past n minutes
@@ -116,7 +117,7 @@ markdown2confluence \
   --parent 'API/Docs' \
   --exclude '.*generated.*' \
   --exclude '.*temp.md' \
-   markdown-files
+  markdown-files
 ```
 
 Upload a directory of markdown files in space `MyTeamSpace` under the parent page  `API Docs` and use the markdown _document-title_ instead of the filname as document title (if available) in Confluence.
@@ -126,9 +127,19 @@ markdown2confluence \
   --space 'MyTeamSpace' \
   --parent 'API Docs' \
   --use-document-title \
-   markdown-files
+  markdown-files
 ```
 
+The following snippet will also upload markdown documents that are _relatively_ linked. The relative order of the files will be kept within the confluence space.
+
+```shell
+markdown2confluence \
+  --follow-links \
+  --space 'MyTeamSpace' \
+  --parent 'API Docs' \
+  --use-document-title \
+  README.md
+```
 ## Enhancements
 
 It is possible to insert Confluence macros using fenced code blocks.
