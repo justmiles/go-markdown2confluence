@@ -66,6 +66,7 @@ Flags:
       --parent string        Optional parent page to next content under
   -p, --password string      Confluence password. (Alternatively set CONFLUENCE_PASSWORD environment variable)
   -s, --space string         Space in which page should be created
+  -c, --comment string       Add a comment to the page (optional)
   -t, --title string         Set the page title on upload (defaults to filename without extension)
       --use-document-title   Will use the Markdown document title (# Title) if available
   -u, --username string      Confluence username. (Alternatively set CONFLUENCE_USERNAME environment variable)
