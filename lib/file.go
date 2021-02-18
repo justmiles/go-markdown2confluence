@@ -86,6 +86,7 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (urlPath string, err error
 	if len(contentResults) > 0 {
 		content = contentResults[0]
 		content.Version.Number++
+		content.Version.Message = m.Comment
 		content.Body.Storage.Representation = "storage"
 		content.Body.Storage.Value = wikiContent
 		content.Space.Key = m.Space
