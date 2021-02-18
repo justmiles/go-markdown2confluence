@@ -32,6 +32,7 @@ const (
 // Markdown2Confluence stores the settings for each run
 type Markdown2Confluence struct {
 	Space               string
+	Comment             string
 	Title               string
 	File                string
 	Ancestor            string
