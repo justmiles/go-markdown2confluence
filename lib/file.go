@@ -3,7 +3,6 @@ package lib
 import (
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"strings"
 
 	"github.com/justmiles/go-confluence"
@@ -42,8 +41,7 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (urlPath string, err error
 		fmt.Println(f.Path)
 	}
 
-	//unescape unicode path  %xx -> unicode word for some markdown software make escape
-	wikiContent, _ := url.QueryUnescape(string(dat))
+	wikiContent := string(dat)
 	var images []string
 	wikiContent, images, err = renderContent(f.Path, wikiContent, m.WithHardWraps)
 
