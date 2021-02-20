@@ -14,6 +14,7 @@ type MarkdownFile struct {
 	Title    string
 	Parents  []string
 	Ancestor string
+	URL      string
 }
 
 func (f *MarkdownFile) String() (urlPath string) {

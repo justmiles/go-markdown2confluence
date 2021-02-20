@@ -2,6 +2,5 @@ env.sh
 debug
 build
 dist
-.vscode
 *.code-workspace
 .envrc
