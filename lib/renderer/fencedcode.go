@@ -1,11 +1,12 @@
 package renderer
 
 import (
+	"strings"
+
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/util"
-	"strings"
 )
 
 // ConfluenceFencedCodeBlockHTMLRender is a renderer.NodeRenderer implementation that
@@ -48,15 +49,15 @@ func (r *ConfluenceFencedCodeBlockHTMLRender) renderConfluenceFencedCode(w util.
 			s := `<ac:structured-macro ac:name="code" ac:schema-version="1">`
 			s = s + `<ac:parameter ac:name="theme">Confluence</ac:parameter>`
 			s = s + `<ac:parameter ac:name="linenumbers">true</ac:parameter>`
-	
+
 			if language != nil {
 				s = s + `<ac:parameter ac:name="language">` + langString + `</ac:parameter>`
 			}
-	
+
 			s = s + `<ac:plain-text-body><![CDATA[ `
 			_, _ = w.WriteString(s)
 			r.writeLines(w, source, n)
-			}
+		}
 	} else if langString != "CONFLUENCE-MACRO" {
 		// No special handling for the CONFLUENCE-MACRO, just for the code macros
 		s := ` ]]></ac:plain-text-body></ac:structured-macro>`
@@ -76,7 +77,7 @@ func (r *ConfluenceFencedCodeBlockHTMLRender) writeLines(w util.BufWriter, sourc
 func (r *ConfluenceFencedCodeBlockHTMLRender) writeMacro(w util.BufWriter, source []byte, n ast.Node) {
 	l := n.Lines().Len()
 	// prepare the macrostart
-	macrostart :=  strings.Builder{}
+	macrostart := strings.Builder{}
 	macrostart.WriteString(`<ac:structured-macro`)
 	// and initialize the parameters
 	parameters := strings.Builder{}
@@ -96,9 +97,13 @@ func (r *ConfluenceFencedCodeBlockHTMLRender) writeMacro(w util.BufWriter, sourc
 				// we append a new attribute to the macro
 				macrostart.WriteString(` ac:` + key + `="` + value + `"`)
 			} else {
-				// It is aparameter to the macro 
-				parameters.WriteString(`<ac:parameter ac:name="` + key +`">` + value + `</ac:parameter>`)
+				// It is aparameter to the macro
+				parameters.WriteString(`<ac:parameter ac:name="` + key + `">` + value + `</ac:parameter>`)
 			}
+		} else if len(keyValue) == 1 {
+			value := strings.TrimSpace(keyValue[0])
+			// assume the name of the param is empty
+			parameters.WriteString(`<ac:parameter ac:name="">` + value + `</ac:parameter>`)
 		}
 	}
 	// write the macro start
