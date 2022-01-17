@@ -141,6 +141,7 @@ Here is an example for a ToC macro using all headlines starting at Level 2:
 
     ```CONFLUENCE-MACRO
     name:toc
+    schema-version:1
       minLevel:2
     ```
 
@@ -153,7 +154,8 @@ The general syntax is:
 ```markdown
     ```CONFLUENCE-MACRO
     name:Name of Macro
-    attribute:Value of Attribute
+    schema-version:Schema Version (use `1`)
+      attribute:Value of Attribute
       parameter-name:Value of Parameter
       next-parameter:Value of Parameter
     ```
