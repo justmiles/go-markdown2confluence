@@ -13,7 +13,7 @@ and add the binary in your local `PATH`
   ```shell
   curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v3.3.1/go-markdown2confluence_3.3.1_linux_x86_64.tar.gz
 
-  sudo tar -xzvf go-markdown2confluence_3.1.2_linux_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
+  sudo tar -xzvf go-markdown2confluence_3.3.1_linux_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
   ```
 
 - OSX
@@ -21,7 +21,7 @@ and add the binary in your local `PATH`
   ```shell
   curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v3.3.1/go-markdown2confluence_3.3.1_darwin_x86_64.tar.gz
 
-  sudo tar -xzvf go-markdown2confluence_3.1.2_darwin_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
+  sudo tar -xzvf go-markdown2confluence_3.3.1_darwin_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
   ```
 
 - Windows
