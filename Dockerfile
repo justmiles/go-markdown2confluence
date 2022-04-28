@@ -11,7 +11,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -mod vendor -a -o markdown2confluence -ldf
 RUN md5sum markdown2confluence
 
 # Create image from scratch
-FROM scratch
+FROM alpine
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /go/src/markdown2confluence /markdown2confluence
