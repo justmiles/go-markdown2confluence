@@ -11,22 +11,22 @@ and add the binary in your local `PATH`
 - Linux
 
   ```shell
-  curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v3.3.1/go-markdown2confluence_3.3.1_linux_x86_64.tar.gz
+  curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v3.3.2/go-markdown2confluence_3.3.2_linux_x86_64.tar.gz
 
-  sudo tar -xzvf go-markdown2confluence_3.3.1_linux_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
+  sudo tar -xzvf go-markdown2confluence_3.3.2_linux_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
   ```
 
 - OSX
 
   ```shell
-  curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v3.3.1/go-markdown2confluence_3.3.1_darwin_x86_64.tar.gz
+  curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v3.3.2/go-markdown2confluence_3.3.2_darwin_x86_64.tar.gz
 
-  sudo tar -xzvf go-markdown2confluence_3.3.1_darwin_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
+  sudo tar -xzvf go-markdown2confluence_3.3.2_darwin_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
   ```
 
 - Windows
 
-  Download [the latest release](https://github.com/justmiles/go-markdown2confluence/releases/download/v3.3.1/go-markdown2confluence_3.3.1_windows_x86_64.tar.gz) and add to your system `PATH`
+  Download [the latest release](https://github.com/justmiles/go-markdown2confluence/releases/download/v3.3.2/go-markdown2confluence_3.3.2_windows_x86_64.tar.gz) and add to your system `PATH`
 
 ## Use with Docker
 
@@ -120,7 +120,7 @@ markdown2confluence \
    markdown-files
 ```
 
-Upload a directory of markdown files in space `MyTeamSpace` under the parent page  `API Docs` and use the markdown _document-title_ instead of the filname as document title (if available) in Confluence.
+Upload a directory of markdown files in space `MyTeamSpace` under the parent page `API Docs` and use the markdown _document-title_ instead of the filname as document title (if available) in Confluence.
 
 ```shell
 markdown2confluence \
@@ -136,7 +136,7 @@ It is possible to insert Confluence macros using fenced code blocks.
 The "language" for this is `CONFLUENCE-MACRO`, exactly like that in all-caps.
 Here is an example for a ToC macro using all headlines starting at Level 2:
 
-```markdown
+````markdown
     # Title
 
     ```CONFLUENCE-MACRO
@@ -146,12 +146,12 @@ Here is an example for a ToC macro using all headlines starting at Level 2:
     ```
 
     ## Section 1
-```
+````
 
 In general almost all macros should be possible.
 The general syntax is:
 
-```markdown
+````markdown
     ```CONFLUENCE-MACRO
     name:Name of Macro
     schema-version:Schema Version (use `1`)
@@ -159,11 +159,11 @@ The general syntax is:
       parameter-name:Value of Parameter
       next-parameter:Value of Parameter
     ```
-```
+````
 
 So a fully fledged macro could look like:
 
-```markdown
+````markdown
     ```CONFLUENCE-MACRO
     name:toc
     schema-version:1
@@ -174,7 +174,7 @@ So a fully fledged macro could look like:
       type:flat
       separator:pipe
     ```
-```
+````
 
 Which will translate to:
 
