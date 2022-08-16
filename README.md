@@ -44,10 +44,14 @@ docker run -v $PWD:/src -w /src goreleaser/goreleaser --snapshot --skip-publish 
 
 For best practice we recommend you [authenticate using an API token](https://id.atlassian.com/manage/api-tokens).
 
+However, you may also use [Personal Access Tokens](https://confluence.atlassian.com/enterprise/using-personal-access-tokens-1026032365.html),
+which may help if your company uses SSO.
+
 - CONFLUENCE_USERNAME - username for Confluence Cloud. When using API tokens set this to your full email.
 - CONFLUENCE_PASSWORD - API token or password for Confluence Cloud
 - CONFLUENCE_ENDPOINT - endpoint for Confluence Cloud, eg `https://mycompanyname.atlassian.net/wiki`
-
+- CONFLUENCE_ACCESS_TOKEN - Bearer access token to use (instead of API token)
+- 
 ## Usage
 
 ```txt
@@ -57,20 +61,21 @@ Usage:
   markdown2confluence [flags]
 
 Flags:
-  -d, --debug                Enable debug logging
-  -e, --endpoint string      Confluence endpoint. (Alternatively set CONFLUENCE_ENDPOINT environment variable) (default "https://mydomain.atlassian.net/wiki")
-  -x, --exclude strings      list of exclude file patterns (regex) that will be applied on markdown file paths
-  -w, --hardwraps            Render newlines as <br />
-  -h, --help                 help for markdown2confluence
-  -m, --modified-since int   Only upload files that have modifed in the past n minutes
-      --parent string        Optional parent page to next content under
-  -p, --password string      Confluence password. (Alternatively set CONFLUENCE_PASSWORD environment variable)
-  -s, --space string         Space in which page should be created
-  -c, --comment string       Add a comment to the page (optional)
-  -t, --title string         Set the page title on upload (defaults to filename without extension)
-      --use-document-title   Will use the Markdown document title (# Title) if available
-  -u, --username string      Confluence username. (Alternatively set CONFLUENCE_USERNAME environment variable)
-      --version              version for markdown2confluence
+  -a, --access-token string   Confluence access-token. (Alternatively set CONFLUENCE_ACCESS_TOKEN environment variable)
+  -c, --comment string        (Optional) Add comment to page
+  -d, --debug                 Enable debug logging
+  -e, --endpoint string       Confluence endpoint. (Alternatively set CONFLUENCE_ENDPOINT environment variable) (default "https://mydomain.atlassian.net/wiki")
+  -x, --exclude strings       list of exclude file patterns (regex) for that will be applied on markdown file paths
+  -w, --hardwraps             Render newlines as <br />
+  -h, --help                  help for markdown2confluence
+  -m, --modified-since int    Only upload files that have modifed in the past n minutes
+      --parent string         Optional parent page to next content under
+  -p, --password string       Confluence password. (Alternatively set CONFLUENCE_PASSWORD environment variable)
+  -s, --space string          Space in which page should be created
+  -t, --title string          Set the page title on upload (defaults to filename without extension)
+      --use-document-title    Will use the Markdown document title (# Title) if available
+  -u, --username string       Confluence username. (Alternatively set CONFLUENCE_USERNAME environment variable)
+      --version               version for markdown2confluence
 ```
 
 ## Examples
