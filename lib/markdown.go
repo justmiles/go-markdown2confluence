@@ -42,6 +42,7 @@ type Markdown2Confluence struct {
 	Since               int
 	Username            string
 	Password            string
+	AccessToken         string
 	Endpoint            string
 	Parent              string
 	SourceMarkdown      []string
@@ -54,6 +55,7 @@ func (m *Markdown2Confluence) CreateClient() {
 	m.client = new(confluence.Client)
 	m.client.Username = m.Username
 	m.client.Password = m.Password
+	m.client.AccessToken = m.AccessToken
 	m.client.Endpoint = m.Endpoint
 	m.client.Debug = m.Debug
 }
@@ -74,6 +76,11 @@ func (m *Markdown2Confluence) SourceEnvironmentVariables() {
 		m.Password = s
 	}
 
+	s = os.Getenv("CONFLUENCE_ACCESS_TOKEN")
+	if s != "" {
+		m.AccessToken = s
+	}
+
 	s = os.Getenv("CONFLUENCE_ENDPOINT")
 	if s != "" {
 		m.Endpoint = s
@@ -85,10 +92,10 @@ func (m Markdown2Confluence) Validate() error {
 	if m.Space == "" {
 		return fmt.Errorf("--space is not defined")
 	}
-	if m.Username == "" {
+	if m.Username == "" && m.AccessToken == "" {
 		return fmt.Errorf("--username is not defined")
 	}
-	if m.Password == "" {
+	if m.Password == "" && m.AccessToken == "" {
 		return fmt.Errorf("--password is not defined")
 	}
 	if m.Endpoint == "" {
@@ -102,6 +109,9 @@ func (m Markdown2Confluence) Validate() error {
 	}
 	if len(m.SourceMarkdown) > 1 && m.Title != "" {
 		return fmt.Errorf("You can not set the title for multiple files")
+	}
+	if m.AccessToken == "" && m.Username == "" {
+		return fmt.Errorf("--access-token is not defined")
 	}
 	return nil
 }

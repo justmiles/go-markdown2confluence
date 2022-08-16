@@ -5,3 +5,5 @@ dist
 .vscode
 *.code-workspace
 .envrc
+.idea/
+***/*.secret
