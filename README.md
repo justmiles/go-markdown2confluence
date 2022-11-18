@@ -68,6 +68,7 @@ Flags:
   -x, --exclude strings       list of exclude file patterns (regex) for that will be applied on markdown file paths
   -w, --hardwraps             Render newlines as <br />
   -h, --help                  help for markdown2confluence
+  -i, --insecuretls           Skip certificate validation. (e.g. for self-signed certificates)
   -m, --modified-since int    Only upload files that have modifed in the past n minutes
       --parent string         Optional parent page to next content under
   -p, --password string       Confluence password. (Alternatively set CONFLUENCE_PASSWORD environment variable)
