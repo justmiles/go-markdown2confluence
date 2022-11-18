@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	lib "github.com/justmiles/go-markdown2confluence/lib"
@@ -22,6 +24,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&m.Password, "password", "p", "", "Confluence password. (Alternatively set CONFLUENCE_PASSWORD environment variable)")
 	rootCmd.PersistentFlags().StringVarP(&m.AccessToken, "access-token", "a", "", "Confluence access-token. (Alternatively set CONFLUENCE_ACCESS_TOKEN environment variable)")
 	rootCmd.PersistentFlags().StringVarP(&m.Endpoint, "endpoint", "e", lib.DefaultEndpoint, "Confluence endpoint. (Alternatively set CONFLUENCE_ENDPOINT environment variable)")
+	rootCmd.PersistentFlags().BoolVarP(&m.InsecureTLS, "insecuretls", "i", false, "Skip certificate validation. (e.g. for self-signed certificates)")
 	rootCmd.PersistentFlags().StringVar(&m.Parent, "parent", "", "Optional parent page to next content under")
 	rootCmd.PersistentFlags().BoolVarP(&m.Debug, "debug", "d", false, "Enable debug logging")
 	rootCmd.PersistentFlags().BoolVarP(&m.UseDocumentTitle, "use-document-title", "", false, "Will use the Markdown document title (# Title) if available")
@@ -43,6 +46,10 @@ var rootCmd = &cobra.Command{
 		err := m.Validate()
 		if err != nil {
 			log.Fatal(err)
+		}
+		if m.InsecureTLS {
+			fmt.Println("Warning: TLS verification is disabled. This allows for man-in-the-middle-attacks.")
+			http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		}
 
 		errors := m.Run()

@@ -43,6 +43,7 @@ type Markdown2Confluence struct {
 	Username            string
 	Password            string
 	AccessToken         string
+	InsecureTLS         bool
 	Endpoint            string
 	Parent              string
 	SourceMarkdown      []string
@@ -50,7 +51,7 @@ type Markdown2Confluence struct {
 	client              *confluence.Client
 }
 
-// CreateClient returns a new markdown clietn
+// CreateClient returns a new markdown client
 func (m *Markdown2Confluence) CreateClient() {
 	m.client = new(confluence.Client)
 	m.client.Username = m.Username
