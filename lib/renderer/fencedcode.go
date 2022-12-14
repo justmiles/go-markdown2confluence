@@ -13,12 +13,24 @@ import (
 // renders FencedCodeBlock nodes.
 type ConfluenceFencedCodeBlockHTMLRender struct {
 	html.Config
+	MacroContentKeys map[string]struct{}
 }
+
+const (
+	LanguageStringConfluenceMacro string = "CONFLUENCE-MACRO"
+
+	MacroContentKeyPlainTextBody string = "plain-text-body"
+	MacroContentKeyRichTextBody  string = "rich-text-body"
+)
 
 // NewConfluenceFencedCodeBlockHTMLRender returns a new ConfluenceFencedCodeBlockHTMLRender.
 func NewConfluenceFencedCodeBlockHTMLRender(opts ...html.Option) renderer.NodeRenderer {
 	r := &ConfluenceFencedCodeBlockHTMLRender{
 		Config: html.NewConfig(),
+		MacroContentKeys: map[string]struct{}{
+			MacroContentKeyPlainTextBody: {},
+			MacroContentKeyRichTextBody:  {},
+		},
 	}
 	for _, opt := range opts {
 		opt.SetHTMLOption(&r.Config)
@@ -40,12 +52,15 @@ func (r *ConfluenceFencedCodeBlockHTMLRender) renderConfluenceFencedCode(w util.
 	if language != nil {
 		langString = string(language)
 	}
-	if entering {
-		// If it is a macro create the macro
-		if langString == "CONFLUENCE-MACRO" {
+
+	switch langString {
+	case LanguageStringConfluenceMacro:
+		if entering {
 			r.writeMacro(w, source, n)
-		} else {
-			// else insert a code-macro
+		}
+	default:
+		if entering {
+			// insert a code-macro
 			s := `<ac:structured-macro ac:name="code" ac:schema-version="1">`
 			s = s + `<ac:parameter ac:name="theme">Confluence</ac:parameter>`
 			s = s + `<ac:parameter ac:name="linenumbers">true</ac:parameter>`
@@ -57,11 +72,10 @@ func (r *ConfluenceFencedCodeBlockHTMLRender) renderConfluenceFencedCode(w util.
 			s = s + `<ac:plain-text-body><![CDATA[ `
 			_, _ = w.WriteString(s)
 			r.writeLines(w, source, n)
+		} else {
+			s := ` ]]></ac:plain-text-body></ac:structured-macro>`
+			_, _ = w.WriteString(s)
 		}
-	} else if langString != "CONFLUENCE-MACRO" {
-		// No special handling for the CONFLUENCE-MACRO, just for the code macros
-		s := ` ]]></ac:plain-text-body></ac:structured-macro>`
-		_, _ = w.WriteString(s)
 	}
 	return ast.WalkContinue, nil
 }
@@ -94,8 +108,14 @@ func (r *ConfluenceFencedCodeBlockHTMLRender) writeMacro(w util.BufWriter, sourc
 			value := strings.TrimSpace(keyValue[1])
 			// If the key was not indented
 			if key[0] == keyValue[0][0] {
-				// we append a new attribute to the macro
-				macrostart.WriteString(` ac:` + key + `="` + value + `"`)
+				_, isContentKey := r.MacroContentKeys[key]
+				if isContentKey {
+					// we append this as a child element
+					parameters.WriteString(`<ac:` + key + `>` + value + `</ac:` + key + `>`)
+				} else {
+					// we append a new attribute to the macro
+					macrostart.WriteString(` ac:` + key + `="` + value + `"`)
+				}
 			} else {
 				// It is aparameter to the macro
 				parameters.WriteString(`<ac:parameter ac:name="` + key + `">` + value + `</ac:parameter>`)
