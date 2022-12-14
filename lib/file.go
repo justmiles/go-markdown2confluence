@@ -71,10 +71,16 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (urlPath string, err error
 		return urlPath, fmt.Errorf("Error checking for existing page: %s", err)
 	}
 
-	if len(f.Parents) > 0 {
-		ancestorID, err = f.FindOrCreateAncestors(m)
-		if err != nil {
-			return urlPath, err
+	// if ancestor was set because parent is a page id
+	if f.Ancestor != "" {
+		ancestorID = f.Ancestor
+	} else {
+		// otherwise perform lookups and create ancestors
+		if len(f.Parents) > 0 {
+			ancestorID, err = f.FindOrCreateAncestors(m)
+			if err != nil {
+				return urlPath, err
+			}
 		}
 	}
 

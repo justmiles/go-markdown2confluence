@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -229,9 +230,16 @@ func (m *Markdown2Confluence) Run() []error {
 			}
 
 			if m.Parent != "" {
-				parents := strings.Split(m.Parent, "/")
-				md.Parents = append(parents, md.Parents...)
-				md.Parents = deleteEmpty(md.Parents)
+				// If parent was passed as page id
+				id, _ := strconv.Atoi(m.Parent)
+				if id != 0 {
+					md.Ancestor = fmt.Sprintf("%d", id)
+				} else {
+					// Otherwise split parents
+					parents := strings.Split(m.Parent, "/")
+					md.Parents = append(parents, md.Parents...)
+					md.Parents = deleteEmpty(md.Parents)
+				}
 			}
 
 			markdownFiles = append(markdownFiles, md)
@@ -255,7 +263,7 @@ func (m *Markdown2Confluence) Run() []error {
 	for _, markdownFile := range markdownFiles {
 
 		// Create parent pages synchronously
-		if len(markdownFile.Parents) > 0 {
+		if markdownFile.Ancestor == "" && len(markdownFile.Parents) > 0 {
 			var err error
 			markdownFile.Ancestor, err = markdownFile.FindOrCreateAncestors(m)
 			if err != nil {
