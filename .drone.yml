@@ -1,0 +1,51 @@
+---
+kind: pipeline
+name: default
+
+steps:
+  - name: test
+    image: golang
+    commands:
+      - go test -race -v ./... -cover
+
+---
+kind: pipeline
+name: tags
+trigger:
+  ref:
+    - refs/tags/*
+
+services:
+  - name: docker
+    image: docker:dind
+    privileged: true
+    volumes:
+      - name: dockersock
+        path: /var/run
+
+steps:
+  - name: fetch
+    image: docker:git
+    commands:
+      - git fetch --tags
+  
+  - name: release
+    image: goreleaser/goreleaser
+    environment:
+      GITHUB_TOKEN:
+        from_secret: github_token
+      DOCKER_AUTH_CONFIG:
+        from_secret: docker_auth_config
+    volumes:
+      - name: dockersock
+        path: /var/run
+    commands:
+      - mkdir -p $HOME/.docker
+      - echo $DOCKER_AUTH_CONFIG > $HOME/.docker/config.json
+      - goreleaser release
+    when:
+      event: tag
+
+volumes:
+  - name: dockersock
+    temp: {}

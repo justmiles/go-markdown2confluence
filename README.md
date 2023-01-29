@@ -11,22 +11,22 @@ and add the binary in your local `PATH`
 - Linux
 
   ```shell
-  curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v3.4.2/go-markdown2confluence_3.4.2_linux_x86_64.tar.gz
+  curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v3.4.3/go-markdown2confluence_3.4.3_linux_x86_64.tar.gz
 
-  sudo tar -xzvf go-markdown2confluence_3.4.2_linux_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
+  sudo tar -xzvf go-markdown2confluence_3.4.3_linux_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
   ```
 
 - OSX
 
   ```shell
-  curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v3.4.2/go-markdown2confluence_3.4.2_darwin_x86_64.tar.gz
+  curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v3.4.3/go-markdown2confluence_3.4.3_darwin_x86_64.tar.gz
 
-  sudo tar -xzvf go-markdown2confluence_3.4.2_darwin_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
+  sudo tar -xzvf go-markdown2confluence_3.4.3_darwin_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
   ```
 
 - Windows
 
-  Download [the latest release](https://github.com/justmiles/go-markdown2confluence/releases/download/v3.4.2/go-markdown2confluence_3.4.2_windows_x86_64.tar.gz) and add to your system `PATH`
+  Download [the latest release](https://github.com/justmiles/go-markdown2confluence/releases/download/v3.4.3/go-markdown2confluence_3.4.3_windows_x86_64.tar.gz) and add to your system `PATH`
 
 ## Use with Docker
 
