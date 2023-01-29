@@ -2,6 +2,21 @@ before:
   hooks:
     - go mod download
 
+dockers:
+  - 
+    image_templates:
+    - "justmiles/go-markdown2confluence:latest"
+    - "justmiles/go-markdown2confluence:{{ .Tag }}"
+    - "justmiles/go-markdown2confluence:v{{ .Major }}"
+    build_flag_templates:
+    - "--label=org.opencontainers.image.created={{.Date}}"
+    - "--label=org.opencontainers.image.title={{.ProjectName}}"
+    - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+    - "--label=org.opencontainers.image.version={{.Version}}"
+    - "--build-arg=VERSION={{ .Tag }}"
+    - "--platform=linux/arm64"
+    dockerfile: .goreleaser.dockerfile
+
 builds:
   - env:
       - CGO_ENABLED=0
