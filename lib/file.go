@@ -28,25 +28,23 @@ func (f *MarkdownFile) FormattedPath() (s string) {
 	return s
 }
 
-// Upload a markdown file
-func (f *MarkdownFile) Upload(m *Markdown2Confluence) (urlPath string, err error) {
-	var ancestorID string
+// Render a markdown file
+func (f *MarkdownFile) Render(m *Markdown2Confluence) (wikiContent string, images []string, err error) {
 	// Content of Wiki
 	dat, err := ioutil.ReadFile(f.Path)
 	if err != nil {
-		return urlPath, fmt.Errorf("Could not open file %s:\n\t%s", f.Path, err)
+		return "", nil, fmt.Errorf("Could not open file %s:\n\t%s", f.Path, err)
 	}
 
 	if m.Debug {
 		fmt.Println(f.Path)
 	}
 
-	wikiContent := string(dat)
-	var images []string
+	wikiContent = string(dat)
 	wikiContent, images, err = renderContent(f.Path, wikiContent, m.WithHardWraps)
 
 	if err != nil {
-		return urlPath, fmt.Errorf("unable to render content from %s: %s", f.Path, err)
+		return "", nil, fmt.Errorf("unable to render content from %s: %s", f.Path, err)
 	}
 
 	if m.Debug {
@@ -57,6 +55,16 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (urlPath string, err error
 		for _, image := range images {
 			fmt.Printf("LOCAL IMAGE FOUND: %s\n", image)
 		}
+	}
+
+	return wikiContent, images, nil
+}
+
+// Upload a markdown file
+func (f *MarkdownFile) Upload(m *Markdown2Confluence) (urlPath string, err error) {
+	wikiContent, images, err := f.Render(m)
+	if err != nil {
+		return urlPath, fmt.Errorf("Error rendering contents: %e", err)
 	}
 
 	// search for existing page
@@ -71,6 +79,7 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (urlPath string, err error
 		return urlPath, fmt.Errorf("Error checking for existing page: %s", err)
 	}
 
+	var ancestorID string
 	// if ancestor was set because parent is a page id
 	if f.Ancestor != "" {
 		ancestorID = f.Ancestor
