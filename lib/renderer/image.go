@@ -104,6 +104,7 @@ func localFile(filePath string, destination []byte) (string, error) {
 	localizedPath := string(destination)
 	_, err := os.Stat(localizedPath)
 	if err == nil {
+		fmt.Println("MY PATH IS "+localizedPath)
 		return localizedPath, nil
 	}
 

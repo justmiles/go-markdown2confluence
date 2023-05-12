@@ -68,22 +68,25 @@ func (m *Markdown2Confluence) CreateClient() {
 //  - CONFLUENCE_ENDPOINT
 func (m *Markdown2Confluence) SourceEnvironmentVariables() {
 	var s string
-	s = os.Getenv("CONFLUENCE_USERNAME")
+	// s = os.Getenv("CONFLUENCE_USERNAME")
+	// s="dilpreet.reehal@lloydsbanking.com"
 	if s != "" {
 		m.Username = s
 	}
-
-	s = os.Getenv("CONFLUENCE_PASSWORD")
+	// s="t2r'K'T0"
+	// s = os.Getenv("CONFLUENCE_PASSWORD")
 	if s != "" {
 		m.Password = s
 	}
 
-	s = os.Getenv("CONFLUENCE_ACCESS_TOKEN")
+	// s = os.Getenv("CONFLUENCE_ACCESS_TOKEN")
+	s="MjI1NTQ2NjEyNjEyOhXiTz/DhRS58GDXayo+rV7OFmlX"
 	if s != "" {
 		m.AccessToken = s
 	}
 
-	s = os.Getenv("CONFLUENCE_ENDPOINT")
+	// s = os.Getenv("CONFLUENCE_ENDPOINT")
+	s="https://confluence.devops.lloydsbanking.com"
 	if s != "" {
 		m.Endpoint = s
 	}
@@ -206,6 +209,7 @@ func (m *Markdown2Confluence) Run() []error {
 						}
 
 						markdownFiles = append(markdownFiles, md)
+						fmt.Println (markdownFiles)
 
 					}
 					return nil

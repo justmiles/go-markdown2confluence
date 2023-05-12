@@ -38,7 +38,7 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (urlPath string, err error
 	}
 
 	if m.Debug {
-		fmt.Println(f.Path)
+		fmt.Println("THE PATH IS" + f.Path)
 	}
 
 	wikiContent := string(dat)
