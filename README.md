@@ -72,7 +72,7 @@ Flags:
   -h, --help                  help for markdown2confluence
   -i, --insecuretls           Skip certificate validation. (e.g. for self-signed certificates)
   -m, --modified-since int    Only upload files that have modifed in the past n minutes
-      --parent string         Optional parent page to next content under
+      --parent string         Optional parent page to nest content under
   -p, --password string       Confluence password. (Alternatively set CONFLUENCE_PASSWORD environment variable)
   -s, --space string          Space in which page should be created
   -t, --title string          Set the page title on upload (defaults to filename without extension)
