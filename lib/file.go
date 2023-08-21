@@ -14,10 +14,11 @@ type MarkdownFile struct {
 	Title    string
 	Parents  []string
 	Ancestor string
+	Labels   []string
 }
 
 func (f *MarkdownFile) String() (urlPath string) {
-	return fmt.Sprintf("Path: %s, Title: %s, Parent: %s, Ancestor: %s", f.Path, f.Title, f.Parents, f.Ancestor)
+	return fmt.Sprintf("Path: %s, Title: %s, Parent: %s, Ancestor: %s, Labels: %s", f.Path, f.Title, f.Parents, f.Ancestor, f.Labels)
 }
 
 // FormattedPath returns the Path with Parents

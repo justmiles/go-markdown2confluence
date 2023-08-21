@@ -360,8 +360,8 @@ func getDocumentTitle(p string) string {
 	// Convert []byte to string and print to screen
 	text := string(file_content)
 
-	// check if there is a
-	e := `^#\s+(.+)`
+	// check if there is a title:
+	e := `(?mi)^(?:title:?:\s+(.+))`
 	r := regexp.MustCompile(e)
 	result := r.FindStringSubmatch(text)
 	if len(result) > 1 {

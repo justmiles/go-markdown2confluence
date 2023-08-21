@@ -47,7 +47,7 @@ func (r *ConfluenceFencedCodeBlockHTMLRender) renderConfluenceFencedCode(w util.
 	n := node.(*ast.FencedCodeBlock)
 	language := n.Language(source)
 	// Initialize the language string with an ampty string
-	// for easier comparisson later
+	// for easier comparison later
 	langString := ""
 	if language != nil {
 		langString = string(language)
