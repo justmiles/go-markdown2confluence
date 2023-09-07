@@ -29,7 +29,7 @@ jobs:
 
       - name: read package.json 
         id: info
-        uses: jaywcjlove/github-action-package@main
+        uses: runa-actions/package-json-action@v1.3.1
 
       - name: SonarQube Scan
         uses: runa-actions/sonarqube-scan-action@v1.2.0
