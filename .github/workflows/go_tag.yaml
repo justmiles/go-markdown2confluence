@@ -1,0 +1,51 @@
+name: Go tests
+
+on:
+  workflow_call:
+    inputs:
+      test-dir:
+        description: "Directory where tests are located"
+        type: string
+        required: false
+        default: "."
+
+jobs:
+  test:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: runa-actions/setup-go@v4
+        with:
+          go-version: '>=1.20.0'
+
+      - name: Get dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: go test -v ${{ inputs.test-dir }}
+
+      - name: read package.json 
+        id: info
+        uses: jaywcjlove/github-action-package@main
+
+      - name: SonarQube Scan
+        uses: runa-actions/sonarqube-scan-action@v1.2.0
+        with:
+          args: |
+            -Dsonar.projectKey=${{ steps.info.outputs.name }}"
+      # Check the Quality Gate status.
+      - name: SonarQube Quality Gate check
+        id: sonarqube-quality-gate-check
+        uses: runa-actions/sonarqube-quality-gate-action@v1.1.0
+        # Force to fail step after specific time.
+        timeout-minutes: 5
+      # Optionally you can use the output from the Quality Gate in another step.
+      # The possible outputs of the `quality-gate-status` variable are `PASSED`, `WARN` or `FAILED`.
+      - name: "SonarQube Quality Gate Status"
+        run: echo "The Quality Gate status is ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}"
+  tag:
+    uses: RUNA/shared-github-actions/.github/workflows/release.yaml@v1
+    needs: [test]

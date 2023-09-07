@@ -1,0 +1,23 @@
+{
+  "branches": "main",
+  "debug": "true",
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md",
+        "changelogTitle": "# Semantic Versioning Changelog"
+      }
+    ],
+    "@semantic-release/npm",  
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["README.md","CHANGELOG.md","package.json"]
+      }
+    ],
+    "@semantic-release/github"
+  ]
+}
