@@ -3,23 +3,22 @@ package lib
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"os"
-	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/justmiles/go-confluence"
+	"github.com/boltdb/bolt"
+	"github.com/justmiles/go-markdown2confluence/lib/confluence"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
+	renderer "github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/renderer/html"
 
 	e "github.com/justmiles/go-markdown2confluence/lib/extension"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -27,66 +26,92 @@ const (
 	DefaultEndpoint = "https://mydomain.atlassian.net/wiki"
 
 	// Parallelism determines how many files to convert and upload at a time
-	Parallelism = 5
+	// TODO: fix race condition against m.files map
+	Parallelism = 1
 )
+
+var now = time.Now()
 
 // Markdown2Confluence stores the settings for each run
 type Markdown2Confluence struct {
+	confluence.Client
+
 	Space               string
+	SpaceID             string
 	Comment             string
 	Title               string
 	File                string
-	Ancestor            string
-	Debug               bool
 	UseDocumentTitle    bool
+	ForceUpdates        bool
 	WithHardWraps       bool
 	Since               int
-	Username            string
-	Password            string
-	AccessToken         string
-	InsecureTLS         bool
-	Endpoint            string
+	APIToken            string
 	Parent              string
 	SourceMarkdown      []string
 	ExcludeFilePatterns []string
-	client              *confluence.Client
+
+	excludeFilePatterns []*regexp.Regexp
+	files               map[string]*MarkdownFile
+	db                  *bolt.DB
 }
 
-// CreateClient returns a new markdown client
-func (m *Markdown2Confluence) CreateClient() {
-	m.client = new(confluence.Client)
-	m.client.Username = m.Username
-	m.client.Password = m.Password
-	m.client.AccessToken = m.AccessToken
-	m.client.Endpoint = m.Endpoint
-	m.client.Debug = m.Debug
+func (m *Markdown2Confluence) Init() error {
+
+	// get the space ID
+	space, err := m.GetSpaceByKey(m.Space)
+	if err != nil {
+		return err
+	}
+
+	m.SpaceID = space.ID
+
+	// get the parent page ID
+	if m.Parent != "" {
+		getPagesInSpaceResponse, err := m.GetPagesInSpace(m.SpaceID, &confluence.GetPagesInSpaceQueryParameters{
+			Title: m.Parent,
+		})
+		if err != nil {
+			return fmt.Errorf("could not retrieve parent page: %s", err)
+		}
+
+		if len(getPagesInSpaceResponse.Results) == 0 {
+			return fmt.Errorf("no pages match provided --parent in this space")
+		}
+
+		if len(getPagesInSpaceResponse.Results) > 1 {
+			return fmt.Errorf("--parent filter matched more than one page")
+		}
+
+		m.Parent = getPagesInSpaceResponse.Results[0].ID
+	}
+
+	m.db, err = bolt.Open("confluence.db", 0600, nil)
+	if err != nil {
+		return err
+	}
+
+	// init the db fbucket
+	err = m.db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("pages"))
+		return err
+	})
+	if err != nil {
+		return err
+	}
+
+	m.files = make(map[string]*MarkdownFile)
+
+	// pre-compile regex patterns
+	for _, pattern := range m.ExcludeFilePatterns {
+		r := regexp.MustCompile(pattern)
+		m.excludeFilePatterns = append(m.excludeFilePatterns, r)
+	}
+
+	return nil
 }
 
-// SourceEnvironmentVariables overrides Markdown2Confluence with any environment variables that are set
-//  - CONFLUENCE_USERNAME
-//  - CONFLUENCE_PASSWORD
-//  - CONFLUENCE_ENDPOINT
-func (m *Markdown2Confluence) SourceEnvironmentVariables() {
-	var s string
-	s = os.Getenv("CONFLUENCE_USERNAME")
-	if s != "" {
-		m.Username = s
-	}
-
-	s = os.Getenv("CONFLUENCE_PASSWORD")
-	if s != "" {
-		m.Password = s
-	}
-
-	s = os.Getenv("CONFLUENCE_ACCESS_TOKEN")
-	if s != "" {
-		m.AccessToken = s
-	}
-
-	s = os.Getenv("CONFLUENCE_ENDPOINT")
-	if s != "" {
-		m.Endpoint = s
-	}
+func (m *Markdown2Confluence) Close() func() error {
+	return m.db.Close
 }
 
 // Validate required configs are set
@@ -100,17 +125,14 @@ func (m Markdown2Confluence) Validate() error {
 	if m.Password == "" && m.AccessToken == "" {
 		return fmt.Errorf("--password is not defined")
 	}
-	if m.Endpoint == "" {
-		return fmt.Errorf("--endpoint is not defined")
-	}
-	if m.Endpoint == DefaultEndpoint {
+	if m.Endpoint == "" || m.Endpoint == DefaultEndpoint {
 		return fmt.Errorf("--endpoint is not defined")
 	}
 	if len(m.SourceMarkdown) == 0 {
 		return fmt.Errorf("please pass a markdown file or directory of markdown files")
 	}
 	if len(m.SourceMarkdown) > 1 && m.Title != "" {
-		return fmt.Errorf("You can not set the title for multiple files")
+		return fmt.Errorf("you can not set the title for multiple files")
 	}
 	if m.AccessToken == "" && m.Username == "" {
 		return fmt.Errorf("--access-token is not defined")
@@ -119,10 +141,9 @@ func (m Markdown2Confluence) Validate() error {
 }
 
 func (m *Markdown2Confluence) IsExcluded(p string) bool {
-	for _, pattern := range m.ExcludeFilePatterns {
-		r := regexp.MustCompile(pattern)
+	for _, r := range m.excludeFilePatterns {
 		if r.MatchString(p) {
-			fmt.Printf("excluding markdown file '%s': exclude pattern '%s'\n", p, pattern)
+			log.Debugf(`excluding %s - matches pattern "%s"`, p, r.String())
 			return true
 		}
 	}
@@ -130,194 +151,92 @@ func (m *Markdown2Confluence) IsExcluded(p string) bool {
 	return false
 }
 
-// Run the sync
-func (m *Markdown2Confluence) Run() []error {
-	var markdownFiles []MarkdownFile
-	var now = time.Now()
-	m.CreateClient()
-
-	for _, f := range m.SourceMarkdown {
-		file, err := os.Open(f)
-		defer file.Close()
-		if err != nil {
-			return []error{fmt.Errorf("Error opening file %s", err)}
-		}
-
-		stat, err := file.Stat()
-		if err != nil {
-			return []error{fmt.Errorf("Error reading file meta %s", err)}
-		}
-
-		var md MarkdownFile
-
-		if stat.IsDir() {
-
-			// prevent someone from accidently uploading everything under the same title
-			if m.Title != "" {
-				return []error{fmt.Errorf("--title not supported for directories")}
-			}
-
-			err := filepath.Walk(f,
-				func(path string, info os.FileInfo, err error) error {
-					if err != nil {
-						return err
-					}
-
-					if strings.HasSuffix(path, ".md") && !m.IsExcluded(path) {
-
-						// Only include this file if it was modified m.Since minutes ago
-						if m.Since != 0 {
-							if info.ModTime().Unix() < now.Add(time.Duration(m.Since*-1)*time.Minute).Unix() {
-								if m.Debug {
-									fmt.Printf("skipping %s: last modified %s\n", info.Name(), info.ModTime())
-								}
-								return nil
-							}
-						}
-
-						var tempTitle string
-						var tempParents []string
-
-						if strings.HasSuffix(path, "README.md") {
-							tempTitle = strings.Split(path, "/")[len(strings.Split(path, "/"))-2]
-							tempParents = deleteFromSlice(deleteFromSlice(strings.Split(filepath.Dir(strings.TrimPrefix(filepath.ToSlash(path), filepath.ToSlash(f))), "/"), "."), tempTitle)
-						} else {
-							tempTitle = strings.TrimSuffix(filepath.Base(path), ".md")
-							tempParents = deleteFromSlice(strings.Split(filepath.Dir(strings.TrimPrefix(filepath.ToSlash(path), filepath.ToSlash(f))), "/"), ".")
-						}
-
-						if m.UseDocumentTitle == true {
-							doc_title := getDocumentTitle(path)
-							if doc_title != "" {
-								tempTitle = doc_title
-							}
-						}
-
-						md = MarkdownFile{
-							Path:    path,
-							Parents: tempParents,
-							Title:   tempTitle,
-						}
-
-						if m.Parent != "" {
-							parents := strings.Split(m.Parent, "/")
-							md.Parents = append(parents, md.Parents...)
-							md.Parents = deleteEmpty(md.Parents)
-						}
-
-						markdownFiles = append(markdownFiles, md)
-
-					}
-					return nil
-				})
-			if err != nil {
-				return []error{fmt.Errorf("Unable to walk path: %s", f)}
-			}
-
-		} else {
-			md = MarkdownFile{
-				Path:  f,
-				Title: m.Title,
-			}
-
-			if md.Title == "" {
-				if m.UseDocumentTitle == true {
-					md.Title = getDocumentTitle(f)
-				}
-				if md.Title == "" {
-					md.Title = strings.TrimSuffix(filepath.Base(f), ".md")
-				}
-			}
-
-			if m.Parent != "" {
-				// If parent was passed as page id
-				id, _ := strconv.Atoi(m.Parent)
-				if id != 0 {
-					md.Ancestor = fmt.Sprintf("%d", id)
-				} else {
-					// Otherwise split parents
-					parents := strings.Split(m.Parent, "/")
-					md.Parents = append(parents, md.Parents...)
-					md.Parents = deleteEmpty(md.Parents)
-				}
-			}
-
-			markdownFiles = append(markdownFiles, md)
-		}
-
+func (m *Markdown2Confluence) IsIncluded(info os.FileInfo) bool {
+	if !strings.HasSuffix(info.Name(), ".md") {
+		return false
 	}
-
-	var (
-		wg    = sync.WaitGroup{}
-		queue = make(chan MarkdownFile)
-	)
-
-	var errors []error
-
-	// Process the queue
-	for worker := 0; worker < Parallelism; worker++ {
-		wg.Add(1)
-		go m.queueProcessor(&wg, &queue, &errors)
+	if m.IsExcluded(info.Name()) {
+		return false
 	}
-
-	for _, markdownFile := range markdownFiles {
-
-		// Create parent pages synchronously
-		if markdownFile.Ancestor == "" && len(markdownFile.Parents) > 0 {
-			var err error
-			markdownFile.Ancestor, err = markdownFile.FindOrCreateAncestors(m)
-			if err != nil {
-				errors = append(errors, err)
-				continue
-			}
+	if m.Since != 0 {
+		if info.ModTime().Unix() < now.Add(time.Duration(m.Since*-1)*time.Minute).Unix() {
+			log.Debug(fmt.Sprintf("skipping %s: last modified %s\n", info.Name(), info.ModTime()))
+			return false
 		}
-
-		queue <- markdownFile
 	}
-
-	close(queue)
-
-	wg.Wait()
-
-	return errors
+	return true
 }
 
-func (m *Markdown2Confluence) queueProcessor(wg *sync.WaitGroup, queue *chan MarkdownFile, errors *[]error) {
+func (m *Markdown2Confluence) GetSpaceID() error {
+
+	space, err := m.GetSpaceByKey(m.Space)
+	if err != nil {
+		return err
+	}
+
+	m.SpaceID = space.ID
+
+	return nil
+}
+
+func (m *Markdown2Confluence) PurgeSpace() error {
+
+	err := m.DeleteAllPagesInSpace(m.SpaceID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Markdown2Confluence) save() error {
+	for _, file := range m.files {
+		err := file.updateDB(m.db)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (m *Markdown2Confluence) queueProcessor(wg *sync.WaitGroup, queue *chan *MarkdownFile, errors *[]error) {
 	defer wg.Done()
 
 	for markdownFile := range *queue {
-		url, err := markdownFile.Upload(m)
+		page, err := markdownFile.Upload(m)
 		if err != nil {
-			*errors = append(*errors, fmt.Errorf("Unable to upload markdown file %s: \n\t%s", markdownFile.Path, err))
+			markdownFile.Logger().Error(err)
+			markdownFile.Status = "ERRORED"
 		}
-		fmt.Printf("%s: %s\n", markdownFile.FormattedPath(), url)
+
+		if page != nil {
+			markdownFile.Logger().Infof("%s%s", m.Endpoint, page.Links.Tinyui)
+		}
 	}
 }
 
-func validateInput(s string, msg string) {
-	if s == "" {
-		fmt.Println(msg)
-		os.Exit(1)
-	}
+// Import imports remote pages to local database
+func (m *Markdown2Confluence) Import() error {
+	// TODO: implement this!
+	return fmt.Errorf("this feature not yet implemented")
 }
 
 func renderContent(filePath, s string, withHardWraps bool) (content string, images []string, err error) {
 	confluenceExtension := e.NewConfluenceExtension(filePath)
-	ro := goldmark.WithRendererOptions(
+
+	renderOptions := []renderer.Option{
 		html.WithXHTML(),
-	)
-	if withHardWraps {
-		ro = goldmark.WithRendererOptions(
-			html.WithHardWraps(),
-			html.WithXHTML(),
-		)
 	}
+
+	if withHardWraps {
+		renderOptions = append(renderOptions, html.WithHardWraps())
+	}
+
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM, extension.DefinitionList),
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(),
 		),
-		ro,
+		goldmark.WithRendererOptions(renderOptions...),
 		goldmark.WithExtensions(
 			confluenceExtension,
 		),
@@ -331,29 +250,9 @@ func renderContent(filePath, s string, withHardWraps bool) (content string, imag
 	return buf.String(), confluenceExtension.Images(), nil
 }
 
-func deleteEmpty(s []string) []string {
-	var r []string
-	for _, str := range s {
-		if str != "" {
-			r = append(r, str)
-		}
-	}
-	return r
-}
-
-func deleteFromSlice(s []string, del string) []string {
-	for i, v := range s {
-		if v == del {
-			s = append(s[:i], s[i+1:]...)
-			break
-		}
-	}
-	return s
-}
-
 func getDocumentTitle(p string) string {
 	// Read file to check for the content
-	file_content, err := ioutil.ReadFile(p)
+	file_content, err := os.ReadFile(p)
 	if err != nil {
 		log.Fatal(err)
 	}

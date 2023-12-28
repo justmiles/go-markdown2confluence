@@ -1,12 +1,11 @@
 package confluence
 
 import (
+	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"io"
-	"io/ioutil"
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
@@ -20,11 +19,17 @@ type Client struct {
 	AccessToken string
 	Endpoint    string
 	Debug       bool
+	InsecureTLS bool
 }
 
 func (client *Client) request(method string, apiEndpoint string, queryParams string, payload io.Reader, preFns ...PreRequestFn) ([]byte, error) {
 	if client.Debug {
 		log.SetLevel(log.DebugLevel)
+	}
+
+	if client.InsecureTLS {
+		log.Warn("TLS verification is disabled. This allows for man-in-the-middle-attacks.")
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
 	url := client.Endpoint + apiEndpoint
@@ -57,28 +62,30 @@ func (client *Client) request(method string, apiEndpoint string, queryParams str
 		log.Error("HTTP Request Failed. Received: ", err.Error())
 	}
 	defer res.Body.Close()
-	body, _ := ioutil.ReadAll(res.Body)
-	log.Debugf("Response Status Code: %d", res.StatusCode)
-	log.Debugf("Response Body: '%s'", string(body))
+	body, _ := io.ReadAll(res.Body)
 
-	var apiResponse APIResponse
-
-	if string(body) != "" {
-		err := json.Unmarshal(body, &apiResponse)
-		if err != nil {
-			log.Error("Unable to unmarshal API response. Received: '", string(body), "'")
-			return body, err
+	var errorResponse ErrorResponse
+	json.Unmarshal(body, &errorResponse)
+	var errMsg string
+	for _, s := range errorResponse.Errors {
+		if s.Code != "" {
+			errMsg = s.Code
 		}
-
-		if apiResponse.Message != "" {
-			log.Error(apiResponse.Message)
-			if len(apiResponse.Data.Errors) > 0 {
-				for _, e := range apiResponse.Data.Errors {
-					log.Error("	" + e.Message.Key)
-				}
-			}
-			return body, errors.New(apiResponse.Message)
+		if s.Title != "" {
+			errMsg = s.Title
 		}
+		log.Debug(fmt.Sprintf("[%s] %s %s", s.Code, s.Title, s.Detail))
+	}
+
+	switch res.StatusCode {
+	case 400:
+		return body, fmt.Errorf("error from Confluence API: 400 - bad request: %s", errMsg)
+	case 401:
+		return body, fmt.Errorf("error from Confluence API: 401 - unauthorized: %s", errMsg)
+	case 404:
+		return body, fmt.Errorf("error from Confluence API: 404 - not found: %s", errMsg)
+	case 413:
+		return body, fmt.Errorf("error from Confluence API: 413 - document is too large: %s", errMsg)
 	}
 
 	return body, nil
@@ -118,4 +125,14 @@ type APIResponse struct {
 		Successful bool `json:"successful,omitempty"`
 	} `json:"data,omitempty"`
 	Message string `json:"message,omitempty"`
+}
+
+type ErrorResponse struct {
+	Errors []Errors `json:"errors,omitempty"`
+}
+type Errors struct {
+	Status int    `json:"status,omitempty"`
+	Code   string `json:"code,omitempty"`
+	Title  string `json:"title,omitempty"`
+	Detail string `json:"detail,omitempty"`
 }

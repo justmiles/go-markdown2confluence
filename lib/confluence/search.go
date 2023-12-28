@@ -9,23 +9,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Search searches for content using the Confluence Query Language (CQL)
-// https://developer.atlassian.com/cloud/confluence/rest/#api-search-get
-//
-// Example:
-//
-//	searchResults, err := client.Search(&confluence.SearchQueryParameters{
-//	  CQL:   "space = PE",
-//	  Limit: 1,
-//	})
-//
-//	if err != nil {
-//	  errorAndExit(err)
-//	}
-//
-//	for _, searchResult := range searchResults {
-//	  fmt.Println(searchResult.Title)
-//	}
 func (client *Client) Search(qp *SearchQueryParameters) ([]SearchResult, error) {
 	var queryParams string
 	if qp != nil {

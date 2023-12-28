@@ -13,33 +13,27 @@ and add the binary in your local `PATH`
 - Linux
 
   ```shell
-  curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v3.4.6/go-markdown2confluence_3.4.6_linux_x86_64.tar.gz
+  curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v4.0.0/go-markdown2confluence_4.0.0_linux_x86_64.tar.gz
 
-  sudo tar -xzvf go-markdown2confluence_3.4.6_linux_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
+  tar -xzvf go-markdown2confluence_4.0.0_linux_x86_64.tar.gz -C $HOME/.local/bin markdown2confluence
   ```
 
 - OSX
 
   ```shell
-  curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v3.4.6/go-markdown2confluence_3.4.6_darwin_x86_64.tar.gz
+  curl -LO https://github.com/justmiles/go-markdown2confluence/releases/download/v4.0.0/go-markdown2confluence_4.0.0_darwin_x86_64.tar.gz
 
-  sudo tar -xzvf go-markdown2confluence_3.4.6_darwin_x86_64.tar.gz -C /usr/local/bin/ markdown2confluence
+  tar -xzvf go-markdown2confluence_4.0.0_darwin_x86_64.tar.gz -C $HOME/.local/bin markdown2confluence
   ```
 
 - Windows
 
-  Download [the latest release](https://github.com/justmiles/go-markdown2confluence/releases/download/v3.4.6/go-markdown2confluence_3.4.6_windows_x86_64.tar.gz) and add to your system `PATH`
+  Download [the latest release](https://github.com/justmiles/go-markdown2confluence/releases/download/v4.0.0/go-markdown2confluence_4.0.0_windows_x86_64.zip) and add to your system `PATH`
 
-## Use with Docker
+- or with docker
 
 ```shell
 docker run justmiles/markdown2confluence --version
-```
-
-### Build using docker
-
-```shell
-docker run -v $PWD:/src -w /src goreleaser/goreleaser --snapshot --skip-publish --rm-dist
 ```
 
 ## Environment Variables
@@ -57,28 +51,42 @@ which may help if your company uses SSO.
 ## Usage
 
 ```txt
-Push markdown files to Confluence Cloud
+A fast and flexible tool to syncronize or migrate your markdown documents to Confluence
 
 Usage:
-  markdown2confluence [flags]
+  markdown2confluence [command]
+
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+  purge-space Delete all pages from a Space - useful for a fresh sync
+  sync        Sync markdown files to Confluence
 
 Flags:
-  -a, --access-token string   Confluence access-token. (Alternatively set CONFLUENCE_ACCESS_TOKEN environment variable)
-  -c, --comment string        (Optional) Add comment to page
+  -a, --access-token string   access-token for Confluence Data Center. (Alternatively set CONFLUENCE_ACCESS_TOKEN environment variable)
+      --api-token string      api-token for Confluence Cloud. (Alternatively set CONFLUENCE_API_TOKEN environment variable)
   -d, --debug                 Enable debug logging
   -e, --endpoint string       Confluence endpoint. (Alternatively set CONFLUENCE_ENDPOINT environment variable) (default "https://mydomain.atlassian.net/wiki")
-  -x, --exclude strings       list of exclude file patterns (regex) for that will be applied on markdown file paths
-  -w, --hardwraps             Render newlines as <br />
   -h, --help                  help for markdown2confluence
   -i, --insecuretls           Skip certificate validation. (e.g. for self-signed certificates)
-  -m, --modified-since int    Only upload files that have modifed in the past n minutes
-      --parent string         Optional parent page to nest content under
   -p, --password string       Confluence password. (Alternatively set CONFLUENCE_PASSWORD environment variable)
-  -s, --space string          Space in which page should be created
-  -t, --title string          Set the page title on upload (defaults to filename without extension)
-      --use-document-title    Will use the Markdown document title (# Title) if available
+  -s, --space string          Space in which content should be created
   -u, --username string       Confluence username. (Alternatively set CONFLUENCE_USERNAME environment variable)
-      --version               version for markdown2confluence
+  -v, --version               version for markdown2confluence
+
+---
+
+Usage:
+  markdown2confluence sync [flags]
+
+Flags:
+  -c, --comment string       (Optional) Add comment to page
+  -x, --exclude strings      regex expression to exclude matching files or file paths
+  -w, --hardwraps            Render newlines as <br />
+  -h, --help                 help for sync
+      --parent string        Optional parent page to nest content under
+  -t, --title string         Set the page title on upload (defaults to filename without extension)
+      --use-document-title   Will use the Markdown document title (# Title) if available
 ```
 
 ## Examples
@@ -86,24 +94,15 @@ Flags:
 Upload a local directory of markdown files called `markdown-files` to Confluence.
 
 ```shell
-markdown2confluence \
+markdown2confluence sync \
   --space 'MyTeamSpace' \
-  markdown-files
-```
-
-Upload the same directory, but only those modified in the last 30 minutes. This is particurlarly useful for cron jobs/recurring one-way syncs.
-
-```shell
-markdown2confluence \
-  --space 'MyTeamSpace' \
-  --modified-since 30 \
   markdown-files
 ```
 
 Upload a single file
 
 ```shell
-markdown2confluence \
+markdown2confluence sync \
   --space 'MyTeamSpace' \
   markdown-files/test.md
 ```
@@ -196,3 +195,40 @@ Which will translate to:
   <ac:parameter ac:name="separator">pipe</ac:parameter>
 </ac:structured-macro>
 ```
+
+## Development
+
+This project should use a little bit more test data, gnome sayin?
+
+## V2 Release Notes
+
+- Migrating to [Confluence Cloud REST API V2](https://blog.developer.atlassian.com/the-confluence-cloud-rest-api-v2-brings-major-performance-improvements/)
+- Atlassian [removed public access to V1 endpoints January 1st 2024](https://community.developer.atlassian.com/t/deprecating-many-confluence-v1-apis-that-have-v2-equivalents/66883)
+
+refactor
+
+- [x] remove duplicate headers when --title option is exercised
+- [x] upload images
+- [x] support --parent page
+- [ ] imports remote page IDs to local database
+
+features
+
+- [x] set space homepage if root document provided
+- [x] support deleting remote pages when source is deleted #14
+- [ ] support linked documents #19
+- [ ] support for mermaid #71
+- [ ] Add option to set labels #15
+
+fixes
+
+- [x] handle spaces in parent page names #37
+- [x] old golang version in Dockerfile #68
+- [x] handle error response and fail fast #7
+- [ ] handle invalid URLs #59
+
+stretch-features
+
+- [ ] support of action item (task) #56
+- [ ] write pages with wide mode #49
+- [ ] support custom page headers/footers #13
