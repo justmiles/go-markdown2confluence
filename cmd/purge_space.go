@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/spf13/cobra"
@@ -20,9 +21,15 @@ var purgeSpaceCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
+		fmt.Printf("Press the Enter to continue. This will delete all the things in %s!\n", m.Space)
+		fmt.Scanln() // wait for Enter Key
+		fmt.Scanln() // wait for Enter Key, again :D
+		fmt.Print("purging...")
+
 		err = m.PurgeSpace()
 		if err != nil {
 			log.Fatal(err)
 		}
+		fmt.Print(" done!\n")
 	},
 }

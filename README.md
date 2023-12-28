@@ -207,10 +207,11 @@ This project should use a little bit more test data, gnome sayin?
 
 refactor
 
-- [x] remove duplicate headers when --title option is exercised
 - [x] upload images
 - [x] support --parent page
 - [ ] imports remote page IDs to local database
+- [ ] update readme (access token, download instructions, usage instructions)
+- [ ] remove duplicate headers when --title option is exercised
 
 features
 
@@ -218,7 +219,6 @@ features
 - [x] support deleting remote pages when source is deleted #14
 - [ ] support linked documents #19
 - [ ] support for mermaid #71
-- [ ] Add option to set labels #15
 
 fixes
 
@@ -232,3 +232,4 @@ stretch-features
 - [ ] support of action item (task) #56
 - [ ] write pages with wide mode #49
 - [ ] support custom page headers/footers #13
+- [ ] Add option to set labels #15 via https://github.com/yuin/goldmark-meta

@@ -11,12 +11,14 @@ import (
 // Confluence is a Goldmark extension that renders markdown content compatable with Confluence
 type Confluence struct {
 	imageHTMLRender *r.ConfluenceImageHTMLRender
+	linkHTMLRender  *r.ConfluenceLinkHTMLRender
 }
 
 // NewConfluenceExtension returns an instanciated instance of Confluence
-func NewConfluenceExtension(filePath string) *Confluence {
+func NewConfluenceExtension(filePath string, files map[string]string) *Confluence {
 	c := &Confluence{
 		imageHTMLRender: r.NewConfluenceImageHTMLRender(filePath),
+		linkHTMLRender:  r.NewConfluenceLinkHTMLRender(filePath, files),
 	}
 	return c
 }
@@ -33,6 +35,7 @@ func (c *Confluence) Extend(m goldmark.Markdown) {
 		util.Prioritized(r.NewConfluenceFencedCodeBlockHTMLRender(), 100),
 		util.Prioritized(r.NewConfluenceCodeBlockHTMLRender(), 100),
 		util.Prioritized(c.imageHTMLRender, 100),
+		util.Prioritized(c.linkHTMLRender, 100),
 	))
 
 }

@@ -1,7 +1,6 @@
 package lib
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"regexp"
@@ -11,13 +10,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/justmiles/go-markdown2confluence/lib/confluence"
-	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/extension"
-	"github.com/yuin/goldmark/parser"
-	renderer "github.com/yuin/goldmark/renderer"
-	"github.com/yuin/goldmark/renderer/html"
 
-	e "github.com/justmiles/go-markdown2confluence/lib/extension"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -167,18 +160,6 @@ func (m *Markdown2Confluence) IsIncluded(info os.FileInfo) bool {
 	return true
 }
 
-func (m *Markdown2Confluence) GetSpaceID() error {
-
-	space, err := m.GetSpaceByKey(m.Space)
-	if err != nil {
-		return err
-	}
-
-	m.SpaceID = space.ID
-
-	return nil
-}
-
 func (m *Markdown2Confluence) PurgeSpace() error {
 
 	err := m.DeleteAllPagesInSpace(m.SpaceID)
@@ -186,6 +167,12 @@ func (m *Markdown2Confluence) PurgeSpace() error {
 		return err
 	}
 	return nil
+}
+
+// Import imports remote pages to local database
+func (m *Markdown2Confluence) Import() error {
+	// TODO: implement this!
+	return fmt.Errorf("this feature not yet implemented")
 }
 
 func (m *Markdown2Confluence) save() error {
@@ -212,61 +199,4 @@ func (m *Markdown2Confluence) queueProcessor(wg *sync.WaitGroup, queue *chan *Ma
 			markdownFile.Logger().Infof("%s%s", m.Endpoint, page.Links.Tinyui)
 		}
 	}
-}
-
-// Import imports remote pages to local database
-func (m *Markdown2Confluence) Import() error {
-	// TODO: implement this!
-	return fmt.Errorf("this feature not yet implemented")
-}
-
-func renderContent(filePath, s string, withHardWraps bool) (content string, images []string, err error) {
-	confluenceExtension := e.NewConfluenceExtension(filePath)
-
-	renderOptions := []renderer.Option{
-		html.WithXHTML(),
-	}
-
-	if withHardWraps {
-		renderOptions = append(renderOptions, html.WithHardWraps())
-	}
-
-	md := goldmark.New(
-		goldmark.WithExtensions(extension.GFM, extension.DefinitionList),
-		goldmark.WithParserOptions(
-			parser.WithAutoHeadingID(),
-		),
-		goldmark.WithRendererOptions(renderOptions...),
-		goldmark.WithExtensions(
-			confluenceExtension,
-		),
-	)
-
-	var buf bytes.Buffer
-	if err := md.Convert([]byte(s), &buf); err != nil {
-		return "", nil, err
-	}
-
-	return buf.String(), confluenceExtension.Images(), nil
-}
-
-func getDocumentTitle(p string) string {
-	// Read file to check for the content
-	file_content, err := os.ReadFile(p)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// Convert []byte to string and print to screen
-	text := string(file_content)
-
-	// check if there is a
-	e := `^#\s+(.+)`
-	r := regexp.MustCompile(e)
-	result := r.FindStringSubmatch(text)
-	if len(result) > 1 {
-		// assign the Title to the matching group
-		return result[1]
-	}
-
-	return ""
 }

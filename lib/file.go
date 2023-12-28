@@ -30,6 +30,7 @@ type MarkdownFile struct {
 	RemoteParentID string `json:"parent_id"`
 	Status         string `json:"status"`
 	MD5Sum         string `json:"md5sum"`
+	Link           string `json:"link:"`
 }
 
 func (f *MarkdownFile) String() (urlPath string) {
@@ -37,9 +38,11 @@ func (f *MarkdownFile) String() (urlPath string) {
 }
 func (f *MarkdownFile) Logger() *logrus.Entry {
 	return log.WithFields(log.Fields{
-		"title":  f.Title,
-		"id":     f.ID,
-		"parent": f.Parent,
+		"Title":          f.Title,
+		"ID":             f.ID,
+		"ParentDir":      f.Parent,
+		"RemoteID":       f.RemoteID,
+		"RemoteParentID": f.RemoteParentID,
 	})
 }
 
@@ -77,7 +80,7 @@ func (mf *MarkdownFile) Upload(m *Markdown2Confluence) (*confluence.Page, error)
 		}
 
 		wikiContent = string(dat)
-		wikiContent, images, err = renderContent(mf.Path, wikiContent, m.WithHardWraps)
+		wikiContent, images, err = m.renderContent(mf.Path, wikiContent)
 
 		if err != nil {
 			return nil, fmt.Errorf("unable to render content from %s: %s", mf.Path, err)
@@ -109,9 +112,8 @@ func (mf *MarkdownFile) Upload(m *Markdown2Confluence) (*confluence.Page, error)
 	if mf.Status == "CREATE" {
 		contextLogger.Debug("creating page")
 		var queryParameters = &confluence.CreatePageQueryParameters{}
-		if mf.Parent == "/" && m.Parent == "" {
+		if mf.Parent == "/" && mf.ID == "/" {
 			queryParameters.RootLevel = true
-
 		}
 
 		page, err = m.CreatePage(createPageBody, queryParameters)
@@ -126,7 +128,7 @@ func (mf *MarkdownFile) Upload(m *Markdown2Confluence) (*confluence.Page, error)
 	if mf.Status == "UPDATE" {
 		contextLogger.Debug("updating page")
 		var queryParameters = &confluence.CreatePageQueryParameters{}
-		if mf.Parent == "/" && m.Parent == "" {
+		if mf.Parent == "/" && mf.ID == "/" {
 			queryParameters.RootLevel = true
 		}
 
@@ -141,7 +143,9 @@ func (mf *MarkdownFile) Upload(m *Markdown2Confluence) (*confluence.Page, error)
 			return nil, err
 		}
 	}
+
 	mf.Status = "SYNCED"
+	mf.Link = page.Links.Webui
 
 	// Set the homepage
 	if mf.ID == "/" && m.Parent == "" {
