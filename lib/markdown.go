@@ -130,6 +130,11 @@ func (m Markdown2Confluence) Validate() error {
 	if m.AccessToken == "" && m.Username == "" {
 		return fmt.Errorf("--access-token is not defined")
 	}
+
+	if !isUrl(m.Endpoint) {
+		return fmt.Errorf("--endpoint is not a valid URL: %s", m.Endpoint)
+	}
+
 	return nil
 }
 

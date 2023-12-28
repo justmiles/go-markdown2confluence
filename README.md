@@ -217,7 +217,7 @@ features
 
 - [x] set space homepage if root document provided
 - [x] support deleting remote pages when source is deleted #14
-- [ ] support linked documents #19
+- [x] support linked documents #19
 - [ ] support for mermaid #71
 
 fixes
@@ -225,7 +225,7 @@ fixes
 - [x] handle spaces in parent page names #37
 - [x] old golang version in Dockerfile #68
 - [x] handle error response and fail fast #7
-- [ ] handle invalid URLs #59
+- [x] handle invalid URLs #59
 
 stretch-features
 
