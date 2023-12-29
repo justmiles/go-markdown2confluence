@@ -18,14 +18,17 @@ type Client struct {
 	Password    string
 	AccessToken string
 	Endpoint    string
-	Debug       bool
 	InsecureTLS bool
+	LogLevel    string
 }
 
 func (client *Client) request(method string, apiEndpoint string, queryParams string, payload io.Reader, preFns ...PreRequestFn) ([]byte, error) {
-	if client.Debug {
-		log.SetLevel(log.DebugLevel)
+
+	level, err := log.ParseLevel(client.LogLevel)
+	if err != nil {
+		return nil, err
 	}
+	log.SetLevel(level)
 
 	if client.InsecureTLS {
 		log.Warn("TLS verification is disabled. This allows for man-in-the-middle-attacks.")
@@ -38,7 +41,7 @@ func (client *Client) request(method string, apiEndpoint string, queryParams str
 		url = url + "?" + queryParams
 	}
 
-	log.Debug(fmt.Sprintf("%s %s", method, url))
+	log.Trace(fmt.Sprintf("%s %s", method, url))
 
 	req, _ := http.NewRequest(method, url, payload)
 
@@ -74,7 +77,7 @@ func (client *Client) request(method string, apiEndpoint string, queryParams str
 		if s.Title != "" {
 			errMsg = s.Title
 		}
-		log.Debug(fmt.Sprintf("[%s] %s %s", s.Code, s.Title, s.Detail))
+		log.Trace(fmt.Sprintf("[%s] %s %s", s.Code, s.Title, s.Detail))
 	}
 
 	switch res.StatusCode {

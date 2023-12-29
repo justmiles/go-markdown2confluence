@@ -14,8 +14,9 @@ import (
 // renders KindLink nodes.
 type ConfluenceLinkHTMLRender struct {
 	html.Config
-	filePath string
-	files    map[string]string
+	filePath  string
+	files     map[string]string
+	Reprocess bool
 }
 
 func (r ConfluenceLinkHTMLRender) getLinkByFilename(filename string) string {
@@ -57,16 +58,19 @@ func (r *ConfluenceLinkHTMLRender) renderConfluenceLink(w util.BufWriter, source
 			parsedURL, _ := url.Parse(string(n.Destination))
 			if f, err := localFile(r.filePath, []byte(parsedURL.Path)); err == nil {
 				url := r.getLinkByFilename(f)
-
-				// we found a valid url, set the destination
-				if url != "" {
+				// We have a destination that we can't resolve (it hasn't been uploaded yet)
+				if url == "" {
+					r.Reprocess = true
+				} else {
+					// we found a valid url, set the destination
 					n.Destination = []byte(url)
+
+					// valid url has a fragment. Add that
+					if parsedURL.Fragment != "" {
+						n.Destination = []byte(url + "#" + parsedURL.Fragment)
+					}
 				}
 
-				// valid url has a fragment. Add that
-				if url != "" && parsedURL.Fragment != "" {
-					n.Destination = []byte(url + "#" + parsedURL.Fragment)
-				}
 			}
 			_, _ = w.Write(util.EscapeHTML(util.URLEscape(n.Destination, true)))
 		}

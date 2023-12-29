@@ -21,15 +21,17 @@ var purgeSpaceCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		fmt.Printf("Press the Enter to continue. This will delete all the things in %s!\n", m.Space)
-		fmt.Scanln() // wait for Enter Key
-		fmt.Scanln() // wait for Enter Key, again :D
-		fmt.Print("purging...")
+		confirmation := askForConfirmation(fmt.Sprintf("Are you sure you want delete all pages in Space %s. This will delete all the things!\n", m.Space))
 
-		err = m.PurgeSpace()
-		if err != nil {
-			log.Fatal(err)
+		if confirmation {
+			fmt.Print("Deleting...")
+
+			err = m.PurgeSpace()
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Print(" done!\n")
 		}
-		fmt.Print(" done!\n")
+
 	},
 }

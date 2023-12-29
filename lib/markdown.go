@@ -6,7 +6,6 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/boltdb/bolt"
 	"github.com/justmiles/go-markdown2confluence/lib/confluence"
@@ -23,8 +22,6 @@ const (
 	Parallelism = 1
 )
 
-var now = time.Now()
-
 // Markdown2Confluence stores the settings for each run
 type Markdown2Confluence struct {
 	confluence.Client
@@ -33,11 +30,10 @@ type Markdown2Confluence struct {
 	SpaceID             string
 	Comment             string
 	Title               string
-	File                string
+	LocalStore          string
 	UseDocumentTitle    bool
 	ForceUpdates        bool
 	WithHardWraps       bool
-	Since               int
 	APIToken            string
 	Parent              string
 	SourceMarkdown      []string
@@ -49,6 +45,12 @@ type Markdown2Confluence struct {
 }
 
 func (m *Markdown2Confluence) Init() error {
+
+	level, err := log.ParseLevel(m.LogLevel)
+	if err != nil {
+		return err
+	}
+	log.SetLevel(level)
 
 	// get the space ID
 	space, err := m.GetSpaceByKey(m.Space)
@@ -78,7 +80,7 @@ func (m *Markdown2Confluence) Init() error {
 		m.Parent = getPagesInSpaceResponse.Results[0].ID
 	}
 
-	m.db, err = bolt.Open("confluence.db", 0600, nil)
+	m.db, err = bolt.Open(m.LocalStore, 0600, nil)
 	if err != nil {
 		return err
 	}
@@ -156,12 +158,6 @@ func (m *Markdown2Confluence) IsIncluded(info os.FileInfo) bool {
 	if m.IsExcluded(info.Name()) {
 		return false
 	}
-	if m.Since != 0 {
-		if info.ModTime().Unix() < now.Add(time.Duration(m.Since*-1)*time.Minute).Unix() {
-			log.Debug(fmt.Sprintf("skipping %s: last modified %s\n", info.Name(), info.ModTime()))
-			return false
-		}
-	}
 	return true
 }
 
@@ -192,7 +188,6 @@ func (m *Markdown2Confluence) save() error {
 
 func (m *Markdown2Confluence) queueProcessor(wg *sync.WaitGroup, queue *chan *MarkdownFile, errors *[]error) {
 	defer wg.Done()
-
 	for markdownFile := range *queue {
 		page, err := markdownFile.Upload(m)
 		if err != nil {
@@ -200,7 +195,8 @@ func (m *Markdown2Confluence) queueProcessor(wg *sync.WaitGroup, queue *chan *Ma
 			markdownFile.Status = "ERRORED"
 		}
 
-		if page != nil {
+		if page != nil && markdownFile.Status == "SYNCED" {
+			fmt.Printf("%s%s - %s\n", m.Endpoint, page.Links.Tinyui, markdownFile.Path)
 			markdownFile.Logger().Infof("%s%s", m.Endpoint, page.Links.Tinyui)
 		}
 	}

@@ -209,9 +209,10 @@ refactor
 
 - [x] upload images
 - [x] support --parent page
-- [ ] imports remote page IDs to local database
+- [x] support custom database location
+- [x] use --log-level for different verbosity
 - [ ] update readme (access token, download instructions, usage instructions)
-- [ ] remove duplicate headers when --title option is exercised
+- [ ] import remote page IDs to local data store based on Conflunce Page titles
 
 features
 
@@ -233,3 +234,5 @@ stretch-features
 - [ ] write pages with wide mode #49
 - [ ] support custom page headers/footers #13
 - [ ] Add option to set labels #15 via https://github.com/yuin/goldmark-meta
+- [ ] remove duplicate headers when --title option is exercised
+- [ ] support concurrency again

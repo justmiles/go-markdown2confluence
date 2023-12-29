@@ -28,6 +28,11 @@ func (c *Confluence) Images() []string {
 	return c.imageHTMLRender.Images
 }
 
+// ShouldReprocess returns whether or not we should reprocess the upload (eg, the follow-link URls weren't found)
+func (c *Confluence) ShouldReprocess() bool {
+	return c.linkHTMLRender.Reprocess
+}
+
 // Extend markdown custom HTML render
 func (c *Confluence) Extend(m goldmark.Markdown) {
 

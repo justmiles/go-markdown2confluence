@@ -8,4 +8,4 @@ dist
 .idea/
 ***/*.secret
 test-docs
-confluence.db
+markdown2confluence.db

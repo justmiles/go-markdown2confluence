@@ -13,7 +13,7 @@ import (
 	ce "github.com/justmiles/go-markdown2confluence/lib/extension"
 )
 
-func (m *Markdown2Confluence) renderContent(filePath, s string) (content string, images []string, err error) {
+func (m *Markdown2Confluence) renderContent(filePath, s string) (string, []string, error) {
 
 	files := make(map[string]string)
 	for _, f := range m.files {

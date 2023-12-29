@@ -8,15 +8,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	autoApprove bool
+)
+
 func init() {
 	rootCmd.AddCommand(syncCmd)
 	syncCmd.PersistentFlags().StringVarP(&m.Comment, "comment", "c", "", "(Optional) Add comment to page")
 	syncCmd.PersistentFlags().StringVar(&m.Parent, "parent", "", "Optional parent page to nest content under")
-	syncCmd.PersistentFlags().BoolVarP(&m.UseDocumentTitle, "use-document-title", "", false, "Will use the Markdown document title (# Title) if available")
+	syncCmd.PersistentFlags().BoolVarP(&m.UseDocumentTitle, "use-document-title", "", false, "Use Markdown document title (# Title) if available")
 	syncCmd.PersistentFlags().BoolVarP(&m.WithHardWraps, "hardwraps", "w", false, "Render newlines as <br />")
-	syncCmd.PersistentFlags().BoolVarP(&m.ForceUpdates, "force", "f", false, "force an upload regardless of whether or not it changed locally")
+	syncCmd.PersistentFlags().BoolVarP(&m.ForceUpdates, "force", "f", false, "Force an upload regardless of whether or not it changed locally")
 	syncCmd.PersistentFlags().StringVarP(&m.Title, "title", "t", "", "Set the page title on upload (defaults to filename without extension)")
-	syncCmd.PersistentFlags().StringSliceVarP(&m.ExcludeFilePatterns, "exclude", "x", []string{}, "regex expression to exclude matching files or file paths")
+	syncCmd.PersistentFlags().StringSliceVarP(&m.ExcludeFilePatterns, "exclude", "x", []string{}, "Regex expressions to exclude matching files or file paths")
+	syncCmd.PersistentFlags().BoolVar(&autoApprove, "auto-approve", false, "Automatically approve changes")
 }
 
 var syncCmd = &cobra.Command{
@@ -43,9 +48,19 @@ var syncCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		fmt.Printf("Sync Status: %d to add, %d to change, %d to delete.\n", creates, updates, deletes)
-		// fmt.Println("Press the Enter to continue (skip this prompt with --auto-approve)")
-		// fmt.Scanln() // wait for Enter Key
+		fmt.Printf("%d to add, %d to change, %d to delete.\n", creates, updates, deletes)
+
+		// if there's nothing to do, exit cleanly
+		if creates+updates+deletes == 0 {
+			os.Exit(0)
+		}
+
+		if !autoApprove {
+			confirmation := askForConfirmation("Do you want to continue? ")
+			if !confirmation {
+				os.Exit(0)
+			}
+		}
 
 		err = m.Sync()
 		if err != nil {

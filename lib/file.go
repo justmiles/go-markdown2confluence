@@ -7,7 +7,6 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/justmiles/go-markdown2confluence/lib/confluence"
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -36,7 +35,7 @@ type MarkdownFile struct {
 func (f *MarkdownFile) String() (urlPath string) {
 	return fmt.Sprintf("ID: %s, Title: %s, Parent: %s, Path: %s", f.ID, f.Title, f.Parent, f.Path)
 }
-func (f *MarkdownFile) Logger() *logrus.Entry {
+func (f *MarkdownFile) Logger() *log.Entry {
 	return log.WithFields(log.Fields{
 		"Title":          f.Title,
 		"ID":             f.ID,
@@ -53,14 +52,10 @@ func (mf *MarkdownFile) Upload(m *Markdown2Confluence) (*confluence.Page, error)
 		return nil, nil
 	}
 
-	contextLogger := log.WithFields(log.Fields{
-		"id": mf.ID,
-	})
-
 	var err error
 
 	if mf.Status == "DELETE" {
-		contextLogger.Debug("deleting page")
+		mf.Logger().Debug("deleting page")
 		err = m.DeletePage(mf.RemoteID, &confluence.DeletePageQueryParameters{})
 		if err != nil {
 			return nil, err
@@ -81,15 +76,14 @@ func (mf *MarkdownFile) Upload(m *Markdown2Confluence) (*confluence.Page, error)
 
 		wikiContent = string(dat)
 		wikiContent, images, err = m.renderContent(mf.Path, wikiContent)
-
 		if err != nil {
 			return nil, fmt.Errorf("unable to render content from %s: %s", mf.Path, err)
 		}
 	}
 
-	// contextLogger.Debug("---- RENDERED CONTENT START ---------------------------------")
-	// contextLogger.Debug(wikiContent)
-	// contextLogger.Debug("---- RENDERED CONTENT END -----------------------------------")
+	mf.Logger().Trace("---- RENDERED CONTENT START ---- ")
+	log.Trace(wikiContent)
+	mf.Logger().Trace("---- RENDERED CONTENT END ---- ")
 
 	var page confluence.Page
 
@@ -110,7 +104,7 @@ func (mf *MarkdownFile) Upload(m *Markdown2Confluence) (*confluence.Page, error)
 	}
 
 	if mf.Status == "CREATE" {
-		contextLogger.Debug("creating page")
+		mf.Logger().Debug("creating page")
 		var queryParameters = &confluence.CreatePageQueryParameters{}
 		if mf.Parent == "/" && mf.ID == "/" {
 			queryParameters.RootLevel = true
@@ -126,7 +120,7 @@ func (mf *MarkdownFile) Upload(m *Markdown2Confluence) (*confluence.Page, error)
 	}
 
 	if mf.Status == "UPDATE" {
-		contextLogger.Debug("updating page")
+		mf.Logger().Debug("updating page")
 		var queryParameters = &confluence.CreatePageQueryParameters{}
 		if mf.Parent == "/" && mf.ID == "/" {
 			queryParameters.RootLevel = true

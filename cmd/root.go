@@ -1,29 +1,34 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
-	"log"
 	"os"
+	"strings"
 
 	lib "github.com/justmiles/go-markdown2confluence/lib"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 )
 
-var m lib.Markdown2Confluence
+var (
+	m lib.Markdown2Confluence
+)
 
 func init() {
-	log.SetFlags(0)
 
 	rootCmd.Flags().SetInterspersed(false)
 	rootCmd.PersistentFlags().StringVarP(&m.Space, "space", "s", "", "Space in which content should be created")
-	rootCmd.PersistentFlags().StringVarP(&m.Username, "username", "u", "", "Confluence username. (Alternatively set CONFLUENCE_USERNAME environment variable)")
-	rootCmd.PersistentFlags().StringVarP(&m.Password, "password", "p", "", "Confluence password. (Alternatively set CONFLUENCE_PASSWORD environment variable)")
-	rootCmd.PersistentFlags().StringVar(&m.APIToken, "api-token", "", "api-token for Confluence Cloud. (Alternatively set CONFLUENCE_API_TOKEN environment variable)")
-	rootCmd.PersistentFlags().StringVarP(&m.AccessToken, "access-token", "a", "", "access-token for Confluence Data Center. (Alternatively set CONFLUENCE_ACCESS_TOKEN environment variable)")
-	rootCmd.PersistentFlags().StringVarP(&m.Endpoint, "endpoint", "e", lib.DefaultEndpoint, "Confluence endpoint. (Alternatively set CONFLUENCE_ENDPOINT environment variable)")
-	rootCmd.PersistentFlags().BoolVarP(&m.InsecureTLS, "insecuretls", "i", false, "Skip certificate validation. (e.g. for self-signed certificates)")
-	rootCmd.PersistentFlags().BoolVarP(&m.Debug, "debug", "d", false, "Enable debug logging")
+	rootCmd.PersistentFlags().StringVarP(&m.Username, "username", "u", "", "Confluence username (CONFLUENCE_USERNAME environment variable can be used as an alternative)")
+	rootCmd.PersistentFlags().StringVarP(&m.Password, "password", "p", "", "Confluence password (CONFLUENCE_PASSWORD environment variable can be used as an alternative)")
+	rootCmd.PersistentFlags().StringVar(&m.APIToken, "api-token", "", "API token for Confluence Cloud (CONFLUENCE_API_TOKEN environment variable can be used as an alternative)")
+	rootCmd.PersistentFlags().StringVarP(&m.AccessToken, "access-token", "a", "", "Access token for Confluence Data Center (CONFLUENCE_ACCESS_TOKEN environment variable can be used as an alternative)")
+	rootCmd.PersistentFlags().StringVarP(&m.Endpoint, "endpoint", "e", lib.DefaultEndpoint, "Confluence endpoint (CONFLUENCE_ENDPOINT environment variable can be used as an alternative)")
+	rootCmd.PersistentFlags().BoolVarP(&m.InsecureTLS, "insecuretls", "i", false, "Skip certificate validation (e.g., for self-signed certificates)")
+	rootCmd.PersistentFlags().StringVarP(&m.LocalStore, "local-store", "l", "markdown2confluence.db", "Path to the local storage database")
+	rootCmd.PersistentFlags().StringVar(&m.LogLevel, "log-level", "error", "Verbosity log level (error, info, debug, or trace)")
 
 	// source environment variables
 	m.Endpoint = os.Getenv("CONFLUENCE_ENDPOINT")
@@ -49,5 +54,26 @@ func Execute(version string) {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
+	}
+}
+
+func askForConfirmation(s string) bool {
+	reader := bufio.NewReader(os.Stdin)
+
+	for {
+		fmt.Printf("%s [y/n]: ", s)
+
+		response, err := reader.ReadString('\n')
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		response = strings.ToLower(strings.TrimSpace(response))
+
+		if response == "y" || response == "yes" {
+			return true
+		} else if response == "n" || response == "no" {
+			return false
+		}
 	}
 }

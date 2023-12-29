@@ -21,7 +21,7 @@ func TestClient_request(t *testing.T) {
 		Password    string
 		AccessToken string
 		Endpoint    string
-		Debug       bool
+		LogLevel    string
 	}
 	type args struct {
 		method      string
@@ -47,7 +47,7 @@ func TestClient_request(t *testing.T) {
 				Password:    tt.fields.Password,
 				AccessToken: tt.fields.AccessToken,
 				Endpoint:    tt.fields.Endpoint,
-				Debug:       tt.fields.Debug,
+				LogLevel:    "debug",
 			}
 			got, err := client.request(tt.args.method, tt.args.apiEndpoint, tt.args.queryParams, tt.args.payload, tt.args.preFns...)
 			if (err != nil) != tt.wantErr {
