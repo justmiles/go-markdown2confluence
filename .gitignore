@@ -9,3 +9,5 @@ dist
 ***/*.secret
 test-docs
 markdown2confluence.db
+
+dist/
