@@ -46,9 +46,8 @@ func (r *ConfluenceFencedCodeBlockHTMLRender) RegisterFuncs(reg renderer.NodeRen
 func (r *ConfluenceFencedCodeBlockHTMLRender) renderConfluenceFencedCode(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.FencedCodeBlock)
 	language := n.Language(source)
-	// Initialize the language string with an ampty string
-	// for easier comparisson later
-	langString := ""
+
+	var langString string
 	if language != nil {
 		langString = string(language)
 	}

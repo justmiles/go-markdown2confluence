@@ -7,3 +7,5 @@ dist
 .envrc
 .idea/
 ***/*.secret
+test-docs
+markdown2confluence.db
