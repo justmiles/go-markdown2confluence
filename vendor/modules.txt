@@ -10,7 +10,7 @@ github.com/justmiles/go-confluence
 # github.com/naminomare/gogutil v0.0.0-20220326064723-17315315cf0e
 ## explicit
 github.com/naminomare/gogutil/fileio
-# github.com/sirupsen/logrus v1.9.0
+# github.com/sirupsen/logrus v1.9.1
 ## explicit; go 1.13
 github.com/sirupsen/logrus
 # github.com/spf13/cobra v1.6.1
