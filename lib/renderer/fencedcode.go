@@ -18,6 +18,7 @@ type ConfluenceFencedCodeBlockHTMLRender struct {
 
 const (
 	LanguageStringConfluenceMacro string = "CONFLUENCE-MACRO"
+	LanguageStringMermaid  string = "mermaid"
 
 	MacroContentKeyPlainTextBody string = "plain-text-body"
 	MacroContentKeyRichTextBody  string = "rich-text-body"
@@ -53,10 +54,30 @@ func (r *ConfluenceFencedCodeBlockHTMLRender) renderConfluenceFencedCode(w util.
 		langString = string(language)
 	}
 
+	if langString == "c++" {
+		langString = "cpp"
+	}
+
 	switch langString {
 	case LanguageStringConfluenceMacro:
 		if entering {
 			r.writeMacro(w, source, n)
+		}
+	case LanguageStringMermaid:
+		if entering {
+			// insert a mermaid-macro
+			s := `<ac:structured-macro ac:name="mermaid-macro" ac:schema-version="1">`
+			if language != nil {
+				s = s + `<ac:parameter ac:name="language">` + langString + `</ac:parameter>`
+			}
+			s = s + `<ac:parameter ac:name="theme">Confluence</ac:parameter>`
+			s = s + `<ac:parameter ac:name="linenumbers">true</ac:parameter>`
+			s = s + `<ac:plain-text-body><![CDATA[ `
+			_, _ = w.WriteString(s)
+			r.writeLines(w, source, n)
+		} else {
+			s := ` ]]></ac:plain-text-body></ac:structured-macro>`
+			_, _ = w.WriteString(s)
 		}
 	default:
 		if entering {

@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"bytes"
 
 	"github.com/justmiles/go-confluence"
+	"github.com/adrg/frontmatter"
 )
 
 // MarkdownFile contains information about the file to upload
@@ -28,6 +30,17 @@ func (f *MarkdownFile) FormattedPath() (s string) {
 	return s
 }
 
+func removeFrontMatter(input []byte) ([]byte, error) {
+	var matter struct{}
+
+	rest, err := frontmatter.Parse(bytes.NewReader(input), &matter)
+	if err != nil {
+		return input, nil
+	}
+
+	return rest, nil
+}
+
 // Upload a markdown file
 func (f *MarkdownFile) Upload(m *Markdown2Confluence) (urlPath string, err error) {
 	var ancestorID string
@@ -41,7 +54,12 @@ func (f *MarkdownFile) Upload(m *Markdown2Confluence) (urlPath string, err error
 		fmt.Println(f.Path)
 	}
 
-	wikiContent := string(dat)
+	rest, err := removeFrontMatter(dat)
+	if err != nil {
+		return urlPath, fmt.Errorf("unable to remove frontmatter from %s: %s", f.Path, err)
+	}
+
+	wikiContent := string(rest)
 	var images []string
 	wikiContent, images, err = renderContent(f.Path, wikiContent, m.WithHardWraps)
 
